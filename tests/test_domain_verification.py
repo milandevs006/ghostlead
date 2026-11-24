@@ -91,13 +91,13 @@ def test_hostname_and_dns_parser(workspace,monkeypatch):
     observed=[]
     def resolve(name,rdtype,**kwargs):
         observed.append((name,rdtype,kwargs));return [SimpleNamespace(strings=[b'ghostlead-',b'challenge']),SimpleNamespace(strings=[b'unrelated'])]
-    monkeypatch.setattr(dv.dns.resolver,'resolve',resolve)
+    monkeypatch.setattr(dv,'public_resolve',resolve)
     assert dv.lookup_txt('www.example.com','ghostlead-challenge')=='matched'
     assert dv.lookup_txt('www.example.com','ghostlead')=='not_found'
-    assert observed[0]==('_ghostlead-verification.www.example.com.','TXT',{'search':False,'lifetime':5.0})
+    assert observed[0]==('_ghostlead-verification.www.example.com.','TXT',{'lifetime':5.0})
     def timeout(*a,**k):raise dv.dns.exception.Timeout()
-    monkeypatch.setattr(dv.dns.resolver,'resolve',timeout)
-    assert dv.lookup_txt('www.example.com','anything')=='dns_error'
+    monkeypatch.setattr(dv,'public_resolve',timeout)
+    assert dv.lookup_txt('www.example.com','anything')=='dns_timeout'
 
 
 def test_upgrade_existing_schema(workspace,tmp_path,monkeypatch):
@@ -106,7 +106,7 @@ def test_upgrade_existing_schema(workspace,tmp_path,monkeypatch):
     main,_,_=workspace
     path=tmp_path/'previous.db'
     old=create_engine('sqlite:///'+str(path))
-    main.Base.metadata.create_all(old,tables=[t for t in main.Base.metadata.sorted_tables if t.name!='domain_proofs'])
+    main.Base.metadata.create_all(old,tables=[t for t in main.Base.metadata.sorted_tables if t.name not in {'domain_proofs','dns_snapshots'}])
     with old.begin() as c:
         c.execute(main.Site.__table__.insert(),dict(id=42,name='Existing website',url='https://www.example.com',created_at='2026-11-24T00:00:00Z'))
     old.dispose()

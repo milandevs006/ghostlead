@@ -36,13 +36,25 @@ def hostname_for(url: str) -> str:
         raise ValueError('Verification requires a DNS hostname with a standard HTTP(S) port. IP addresses and local or reserved names are not supported.') from None
 
 
+def public_resolve(name, kind, lifetime=5.0):
+    # Fixed recursive resolver; never send requests to target nameservers directly.
+    resolver = dns.resolver.Resolver(configure=False)
+    resolver.nameservers = ['8.8.8.8']
+    resolver.timeout = 2.0
+    return resolver.resolve(name, kind, search=False, lifetime=lifetime)
+
+
 def lookup_txt(host: str, token: str) -> str:
-    """One bounded DNS TXT lookup, using only the system resolver. No HTTP."""
+    """One bounded DNS TXT lookup, using a fixed public resolver. No HTTP."""
     try:
-        answer = dns.resolver.resolve(PREFIX + host + '.', 'TXT', search=False, lifetime=5.0)
+        answer = public_resolve(PREFIX + host + '.', 'TXT', lifetime=5.0)
         expected = token.encode('ascii')
         return 'matched' if any(b''.join(record.strings) == expected for record in answer) else 'not_found'
-    except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
-        return 'not_found'
+    except dns.resolver.NXDOMAIN:
+        return 'missing_name'
+    except dns.resolver.NoAnswer:
+        return 'missing_record'
+    except dns.exception.Timeout:
+        return 'dns_timeout'
     except (dns.exception.DNSException, OSError):
         return 'dns_error'

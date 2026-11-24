@@ -72,7 +72,7 @@ class ImportLog(Base):
     rows: Mapped[int]=mapped_column(Integer)
     created_at: Mapped[str]=mapped_column(String(32))
 Base.metadata.create_all(engine)
-app=FastAPI(title='GhostLead',version='0.3.0-alpha.1',docs_url=None,redoc_url=None,openapi_url=None)
+app=FastAPI(title='GhostLead',version='0.3.0-alpha.2',docs_url=None,redoc_url=None,openapi_url=None)
 app.mount('/static',StaticFiles(directory=ROOT/'app/static'),name='static')
 ph=PasswordHasher()
 COOKIE='ghostlead_session'
@@ -423,3 +423,57 @@ def domain_revoke(site_id:int, s:Session=Depends(auth)):
     s.execute(delete(DomainProof).where(DomainProof.site_id==site_id))
     s.commit()
     return verification_state(site, None)
+
+# Stage 3.2 — authenticated, explicitly requested public DNS snapshots only.
+import json
+from threading import Lock
+from . import dns_intelligence as di
+
+class DnsSnapshot(Base):
+    __tablename__ = 'dns_snapshots'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    site_id: Mapped[int] = mapped_column(ForeignKey('sites.id', ondelete='CASCADE'), index=True)
+    observed_at: Mapped[str] = mapped_column(String(32))
+    payload: Mapped[str] = mapped_column(Text)
+
+DnsSnapshot.__table__.create(engine, checkfirst=True)
+_dns_lock = Lock()
+_dns_next = 0.0
+DNS_HISTORY_LIMIT = 20
+
+
+def snapshot_data(row):
+    return {'id': row.id, 'observed_at': row.observed_at, **json.loads(row.payload)}
+
+@app.get('/api/intelligence/{site_id}')
+def dns_history(site_id:int, s:Session=Depends(auth)):
+    site = verification_site(s, site_id)
+    proof = verification_state(site, s.get(DomainProof, site_id))
+    rows = s.scalars(select(DnsSnapshot).where(DnsSnapshot.site_id==site_id).order_by(DnsSnapshot.id.desc()).limit(DNS_HISTORY_LIMIT)).all()
+    return {'hostname':proof['hostname'], 'verification_status':proof['status'], 'history':[snapshot_data(r) for r in rows]}
+
+@app.post('/api/intelligence/{site_id}/lookup')
+def dns_lookup(site_id:int, s:Session=Depends(auth)):
+    global _dns_next
+    site = verification_site(s, site_id)
+    host = dv.hostname_for(site.url)
+    s.rollback()  # No database transaction during network I/O.
+    if not _dns_lock.acquire(blocking=False):
+        raise HTTPException(429, 'A DNS lookup is running. Try again shortly.')
+    try:
+        if time.monotonic() < _dns_next:
+            raise HTTPException(429, 'Wait 15 seconds between DNS lookups.')
+        _dns_next = time.monotonic() + 15
+        result = di.collect(host)
+        site = verification_site(s, site_id)
+        if dv.hostname_for(site.url) != host:
+            raise HTTPException(409, 'Website changed during lookup. Try again.')
+        row = DnsSnapshot(site_id=site_id, observed_at=now(), payload=json.dumps(result, ensure_ascii=True))
+        s.add(row); s.flush()
+        stale = s.scalars(select(DnsSnapshot.id).where(DnsSnapshot.site_id==site_id).order_by(DnsSnapshot.id.desc()).offset(DNS_HISTORY_LIMIT)).all()
+        if stale:
+            s.execute(delete(DnsSnapshot).where(DnsSnapshot.id.in_(stale)))
+        s.commit()
+        return snapshot_data(row)
+    finally:
+        _dns_lock.release()
