@@ -1,0 +1,4 @@
+fastapi==0.128.2
+uvicorn==0.48.0
+SQLAlchemy==2.0.50
+argon2-cffi>=23.1,<26
