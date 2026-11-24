@@ -5,8 +5,9 @@ _tmp=tempfile.TemporaryDirectory()
 atexit.register(_tmp.cleanup)
 os.environ['GHOSTLEAD_DATABASE_URL']='sqlite:///'+str(Path(_tmp.name)/'test.db')
 from fastapi.testclient import TestClient
-from app.main import app
+from app.main import app, engine
 
+atexit.register(engine.dispose)
 def test_workspace_lifecycle():
     c=TestClient(app,headers={'X-GhostLead-Request':'1'})
     assert c.get('/api/workspace').status_code==401
@@ -56,3 +57,48 @@ def test_workspace_lifecycle():
     assert c.post('/api/login',json={'email':'test@example.invalid','password':'wrong'}).status_code==401
     assert c.post('/api/login',json={'email':'test@example.invalid','password':'isolated-test-password'}).status_code==200
     assert TestClient(app).post('/api/logout').status_code==403
+
+def test_file_import(monkeypatch,tmp_path):
+    import base64, io, json
+    from openpyxl import Workbook
+    from sqlalchemy import create_engine
+    import app.main as main
+    isolated=create_engine('sqlite:///'+str(tmp_path/'import.db'),connect_args={'check_same_thread':False})
+    main.Base.metadata.create_all(isolated)
+    monkeypatch.setattr(main,'engine',isolated)
+    c=TestClient(main.app,headers={'X-GhostLead-Request':'1'})
+    assert c.post('/api/setup',json={'email':'import@example.invalid','password':'isolated-test-password','workspace':'Test only'}).status_code==200
+    def req(kind,act,name,raw):
+        return c.post(f'/api/file-import/{kind}/{act}',json={'filename':name,'encoded':base64.b64encode(raw).decode()})
+    def workspace():return c.get('/api/workspace').json()
+    raw=b'name,url\nTest,https://example.invalid\n'
+    p=req('websites','preview','test.csv',raw)
+    assert p.status_code==200 and p.json()['saved'] is False and p.json()['rows']==1
+    assert workspace()['websites']==[] and workspace()['imports']==[]
+    assert req('websites','commit','test.csv',raw).json()=={'rows':1,'saved':True}
+    assert req('websites','preview','test.csv',raw).status_code==400
+    assert len(workspace()['websites'])==1 and len(workspace()['imports'])==1
+    workbook=Workbook(); sheet=workbook.active
+    sheet.append(['website_url','name','kind']);sheet.append(['https://example.invalid','Form','Contact form']);b=io.BytesIO();workbook.save(b)
+    assert req('monitors','preview','test.xlsx',b.getvalue()).status_code==200
+    assert workspace()['monitors']==[]
+    assert req('monitors','commit','test.xlsx',b.getvalue()).status_code==200
+    assert len(workspace()['monitors'])==1
+    sheet.append(['https://example.invalid','=1+1','Contact form']);b=io.BytesIO();workbook.save(b)
+    assert req('monitors','preview','formula.xlsx',b.getvalue()).status_code==400
+    workbook.close()
+    good={'website_url':'https://example.invalid','event_key':'key','stage':'source','observed_at':'2026-11-24T10:00:00Z'}
+    bad={**good,'event_key':'another','stage':'bad'}
+    assert req('lead_events','commit','bad.json',json.dumps([good,bad]).encode()).status_code==400
+    assert workspace()['lead_events']==[] and len(workspace()['imports'])==2
+    assert req('lead_events','preview','good.json',json.dumps([good]).encode()).status_code==200
+    assert workspace()['lead_events']==[]
+    assert req('lead_events','commit','good.json',json.dumps([good]).encode()).status_code==200
+    assert len(workspace()['lead_events'])==1 and len(workspace()['imports'])==3
+    assert req('websites','preview','bad.json',b'[{"name":"a","name":"b","url":"https://test.invalid"}]').status_code==400
+    assert req('websites','preview','empty.json',b'[]').status_code==400
+    assert req('websites','preview','fake.xlsx',b'not a zip').status_code==400
+    assert req('websites','preview','too-big.csv',b'a'*1_000_001).status_code==400
+    assert c.post('/api/logout').status_code==200
+    assert req('websites','preview','test.csv',raw).status_code==401
+    isolated.dispose()

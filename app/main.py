@@ -305,3 +305,27 @@ def save_journey(site_id: int, payload: JourneyInput, s: Session=Depends(auth)):
             s.rollback(); raise HTTPException(409, 'Journey changed. Reload before saving.')
         s.commit()
     return {'site_id':site_id, 'revision':payload.revision+1, 'updated_at':stamp, **json.loads(graph)}
+
+# Stage 2.5 — preview and transactional multi-format import; no schema changes.
+from .import_formats import parse_upload
+class FileImport(BaseModel):
+    filename: str = Field(min_length=1,max_length=250)
+    encoded: str = Field(max_length=1_334_000)
+
+@app.post('/api/file-import/{kind}/{action}')
+def file_import(kind:str, action:Literal['preview','commit'], p:FileImport, s:Session=Depends(auth)):
+    if kind not in HEADERS:raise HTTPException(404,'Unknown import type.')
+    rows=parse_upload(p.filename,p.encoded,HEADERS[kind])
+    line=0
+    try:
+        for line,row in rows:insert(s,kind,row)
+        if action=='preview':
+            s.rollback()
+            return {'rows':len(rows),'headers':HEADERS[kind],'preview':[row for _,row in rows[:10]],'saved':False}
+        s.add(ImportLog(kind=kind,filename=p.filename,rows=len(rows),created_at=now()))
+        s.commit()
+        return {'rows':len(rows),'saved':True}
+    except (ValueError,IntegrityError) as exc:
+        s.rollback()
+        msg='Duplicate record or invalid reference.' if isinstance(exc,IntegrityError) else str(exc)
+        raise ValueError(f'Row {line}: {msg} No records saved.') from None
