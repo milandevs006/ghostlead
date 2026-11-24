@@ -1,114 +1,167 @@
-# GhostLead · v0.1.0
+# GhostLead
 
-A local-first foundation for a future commercial lead-integrity platform. The approved design uses white surfaces, steel-blue charts, midnight navy typography, a persistent sidebar, a journey topology and distinct workspace views. It is a working application, not a static dashboard or a public production service.
+**Lead integrity and revenue protection**
 
-## Start on Windows
+![Version](https://img.shields.io/badge/version-0.2.0-234A79) ![Status](https://img.shields.io/badge/status-active_development-64748b)
 
-1. Install Python 3.11–3.13 from https://www.python.org/downloads/ (enable **Add Python to PATH**). An Internet connection is needed on the first dependency installation. No paid APIs, accounts or hosting are required.
-2. Extract the entire ZIP into a folder you own, such as Documents\GhostLead.
-3. Double-click `start-windows.bat`. On first launch it creates a virtual environment and installs dependencies. Keep the command window open.
-4. Open http://127.0.0.1:8000 in Chrome or Edge. Create your own workspace, email and password (12 characters minimum).
-5. Open **Data imports** or add a website manually. The database starts entirely empty.
+GhostLead is a local-first platform for documenting customer acquisition workflows, analysing lead delivery records and investigating potential failures across digital business channels. It is being developed towards a commercial monitoring platform for businesses and agencies.
 
-To stop the server, press Ctrl+C in the command window. Double-click the launcher again to resume. The virtual environment and database persist in your extracted folder.
+**Latest tagged milestone: v0.2.0 — Advanced Product Foundation.** This release is a working local application, not a production-ready SaaS or a live website scanner.
 
-### Manual startup (PowerShell)
+## Features
 
-From the extracted `ghostlead` directory:
+- **Workspace and authentication:** first-time owner setup, login/logout and persistent local storage.
+- **Overview:** website inventory, recorded check results, lead matching and incident summaries.
+- **Monitors:** configure monitors and manually record or import actual observations.
+- **Journey builder:** create, connect, edit and save website-specific workflow stages using React Flow. Saved layouts do not execute monitoring jobs.
+- **Lead explorer:** reconcile source and destination events using matching website and event identifiers.
+- **Analytics:** website/date filters, monitoring trends, lead-flow diagrams, failure heatmaps, latency percentiles and website comparisons.
+- **Incidents:** inspect failures derived from recorded observations.
+- **Data imports:** CSV, XLSX and JSON with preview, validation, duplicate rejection and atomic confirmation.
+- **Reports:** export recorded data and analytical summaries as CSV.
+- **Interface:** responsive white-theme design, collapsible sidebar, workspace search and subtle transitions.
+
+## Technology stack
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | Next.js, React, TypeScript, custom CSS |
+| Visualisation | Apache ECharts, React Flow |
+| Motion and icons | Motion, Lucide |
+| Backend | Python, FastAPI, Uvicorn |
+| Persistence | SQLAlchemy 2, SQLite |
+| Authentication | Argon2 password hashing, server-side sessions |
+| Data formats | CSV, JSON, XLSX (openpyxl) |
+| Testing | Pytest, HTTPX, Node.js, TypeScript |
+| Version control | Git, GitHub |
+
+## Getting started (Windows / VS Code)
+
+Install Python 3.11 or a compatible version, Node.js (the release was developed with Node.js 24), npm and Git. Internet access is required for dependency installation. No paid API or hosting subscription is needed for local development. The commands below use the existing Python environment; a virtual environment is optional.
+
+Clone the repository if you do not already have a local copy (GitHub access is required for a private repository):
 
 ```powershell
-py -3 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+git clone https://github.com/milandevs006/ghostlead.git
+cd ghostlead
 ```
 
-macOS/Linux:
+### Terminal 1 — backend (repository root)
 
-```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```powershell
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-If port 8000 is occupied, change it to 8001 and open the matching URL. If `py` is not available on Windows, substitute `python`. The app uses local CSS and JavaScript and has no CDN dependencies.
+### Terminal 2 — frontend (repository root)
 
-## Data ownership and import workflow
-
-**No seed script, no sample records, no pre-created account, no database file in the distribution.** The backend creates its schema automatically. Only your authenticated manual entry and imports create business records. The only other generated records are account/session metadata, creation timestamps and import history.
-
-1. Register or import websites.
-2. Create or import monitors referencing exact existing website URLs.
-3. Record or import actual monitor observations.
-4. Import lead events from source and destination records.
-5. Review Overview, Journey map, Lead explorer and Incidents. Export CSV in Reports.
-
-Download header-only templates in the Data imports page or use `templates/`. Fill them with your own data; do not import blank files. CSV files must contain UTF-8 text, the exact headers (any order), up to 10,000 rows and up to 2 MB. Invalid rows and duplicates reject the entire batch. No silent overwrites. For values containing commas or line breaks, use properly quoted CSV fields. Excel users should save as CSV UTF-8. XLSX is not supported in this release.
-
-| Import type | Columns | Rules |
-| --- | --- | --- |
-| Websites | `name,url` | Unique full HTTP(S) URL, no fragments/credentials; trailing slash removed. |
-| Monitors | `website_url,name,kind` | Unique name per website; existing URL. Kind: Contact form, Booking flow, CRM delivery, Webhook, Website availability, Other. |
-| Monitor results | `website_url,monitor_name,observed_at,status,latency_ms,detail` | Existing monitor; ISO 8601 timestamp with timezone; status `passed`, `failed`, `inconclusive`. Optional latency is integer milliseconds; detail up to 2000 chars. Unique monitor/timestamp. |
-| Lead events | `website_url,event_key,stage,observed_at` | Existing website; opaque shared key; stage `source` or `destination`; ISO 8601 timestamp with timezone; unique site/key/stage. |
-
-`observed_at` format: `YYYY-MM-DDTHH:MM:SSZ` or a timestamp with explicit UTC offset. The backend normalises timestamps to UTC. Manual-entry date/time fields use the browser's local timezone. Website URL and monitor name must match the registered values. Avoid personal names, phone numbers, emails, payment details, secrets or sensitive data in event IDs and evidence fields.
-
-## How metrics are calculated
-
-- **Registered websites:** count of website records.
-- **Check pass rate:** passed / (passed + failed) for selected period; inconclusive excluded from denominator. No conclusive results displays an em dash, not a fake 0% or 100%.
-- **Lead match rate:** fraction of source identifiers observed during the selected period for which any corresponding destination event exists in the uploaded records. It is not a measured real-world delivery rate.
-- **Open incidents:** monitors whose latest uploaded result is failed. A later inconclusive result makes the latest state inconclusive; a later passed result shows a recorded pass. This does not certify current health or actual resolution. Historical observations remain until deleted.
-- **Journey topology:** counts of unique source and destination identifiers and exact matches, all-time or per website.
-- **Lead explorer:** joins records using exact website and event identifier. Source-only or destination-only means unmatched in the supplied data, not necessarily missing or lost leads.
-- **Chart:** counts of observations per UTC day, up to the 60 most recent observed dates in the selected period. No invented time series.
-
-The dashboard refreshes on save/import/delete and on demand. It does not run background scans or live push updates. There are no paid integrations or fabricated results.
-
-## Technical architecture
-
-- FastAPI / Python: authenticated JSON API, validation, explicit data endpoints.
-- SQLAlchemy 2: relational data model, foreign keys, uniqueness, atomic import transaction.
-- SQLite: persistent local database. `GHOSTLEAD_DATABASE_URL` allows alternate SQLAlchemy URLs, but PostgreSQL needs a driver and migration/compatibility testing before adoption.
-- Native HTML/CSS/modern JavaScript: responsive custom design, SVG analytical visualisations, accessible native dialogs, filterable tables. No frontend build step, no CDN, no paid UI libraries. Next.js/TypeScript were considered but npm access was unavailable in the build environment; this release uses a locally testable frontend with a separate JSON API. It can be replaced by Next.js later.
-- Argon2: password hashing. Random session tokens stored as hashes; HttpOnly, SameSite=Strict cookies, seven-day expiration. Same-origin custom-header mutation checks and no CORS configuration. Basic local login throttling.
-- No outbound requests or autonomous browser tests from the app. Registering a URL stores it only.
-
+```powershell
+cd frontend
+npm ci
+npm run dev
 ```
+
+Open **http://localhost:3000**. Keep both terminals running. Create an owner account on a fresh installation or sign in with your existing credentials. The legacy v0.1 interface is still available at http://127.0.0.1:8000; both interfaces use the same backend and database. Use port 3000 for the current frontend. Stop either server with Ctrl+C.
+
+If an existing installation unexpectedly displays first-time setup, stop and verify its database location before creating another account. If you already have a working local repository, do not clone over it or replace its data directory.
+
+## Data ownership and imports
+
+**No demo data.** No pre-created account, seed records, artificial monitoring results or fabricated revenue figures are distributed. Business records are entered or imported by the authenticated owner. The application also creates internal account/session metadata, saved workflow metadata and import history as needed.
+
+Download the header-only templates from **Data imports**. Register websites before importing dependent monitor and lead records. Select the file, validate and preview it, then confirm the import. Preview does not persist records; confirmation validates again and commits atomically. Invalid or duplicate records reject the batch.
+
+| Record type | Fields |
+| --- | --- |
+| Websites | `name,url` |
+| Monitors | `website_url,name,kind` |
+| Monitor results | `website_url,monitor_name,observed_at,status,latency_ms,detail` |
+| Lead events | `website_url,event_key,stage,observed_at` |
+
+The new import centre accepts UTF-8 CSV, a single-sheet XLSX workbook without formulas, or a JSON array of objects. Limits: 1 MB and 10,000 rows per file. Use exact template field names and timezone-aware ISO 8601 timestamps. For lead records, use opaque event identifiers rather than personal information. See [Stage 2.5](STAGE-2.5.md) for formatting details.
+
+Unmatched source events are not proof of lost customers. Check outcomes reflect recorded observations, not independently verified live health. Missing measurements remain empty. The overview excludes inconclusive checks from its pass-rate denominator; the Analytics Centre includes them in its recorded-check pass rate. These metrics should not be treated as identical. Analytics time buckets use UTC; see [Stage 2.4](STAGE-2.4.md) for matching and percentile definitions.
+
+## Project structure
+
+```text
 ghostlead/
-  app/
-    main.py           # API, database model, validation, authentication
-    static/
-      index.html      # app shell
-      style.css       # GhostLead design system
-      app.js          # interface, charts, forms, CSV exports
-  templates/          # headers only; no rows
-  tests/test_app.py   # isolated lifecycle test (temporary database)
-  requirements.txt
-  requirements-dev.txt
-  start-windows.bat
-  README.md
-  ROADMAP.md
-  .gitignore
+├── app/                       # FastAPI, database, authentication and legacy UI
+│   ├── main.py
+│   ├── import_formats.py
+│   └── static/
+├── frontend/                  # Current Next.js frontend
+│   ├── src/app/
+│   │   ├── page.tsx
+│   │   ├── globals.css
+│   │   ├── journey-builder.tsx
+│   │   ├── analytics-centre.tsx
+│   │   ├── analytics-model.ts
+│   │   └── import-centre.tsx
+│   ├── tests/
+│   ├── package.json
+│   └── package-lock.json
+├── templates/                 # Header-only CSV templates
+├── tests/                     # Isolated backend tests
+├── data/                      # Local database, created at runtime; not committed
+├── requirements.txt
+├── requirements-dev.txt
+├── README.md
+└── ROADMAP.md
 ```
-
-## Storage, backups and deletion
-
-The first launch creates `data/ghostlead.db`. This is your real local database. Do not commit it to source control or share it publicly. For a complete backup, stop the application and copy the database file to a secure location. For a restore, stop the app and replace the database with a backup made by the same schema version. CSV exports are useful for analysis, not a full backup of accounts, IDs or import history; spreadsheet formula protection may prefix some values with a quote. Deleting a website cascades to its monitors, results and events. Deleting a monitor cascades to its observations. The original import history remains as metadata. Confirm before deleting. Editing is not implemented yet; delete/recreate carefully or ask for an editing feature in the next version.
-
-No password-reset or multi-user workflow is implemented. Keep your password securely. Do not delete the database to reset a password unless you intentionally want to lose all workspace data.
 
 ## Testing
 
-Install dev dependencies and run from the root directory:
+Backend (repository root):
 
-```sh
+```powershell
 python -m pip install -r requirements-dev.txt
-python -m pytest -q
+python -m pytest -v
 ```
 
-On Windows with the launcher-created environment, use `.venv\Scripts\python.exe` instead of `python`. The API lifecycle test uses a disposable database and verifies empty startup, access controls, setup, inserts, duplicate rejection, timezone validation, transactional rollback, successful CSV import, cascade deletion, signout and login. JavaScript and Python syntax were checked. The browser runtime in the authoring environment blocked navigation; full visual/browser end-to-end testing remains outstanding. The user should perform a smoke test locally before adding important data. No test database or test data is included as an active workspace.
+Frontend (from `frontend/`):
 
-## Deployment boundary
+```powershell
+npx tsc --noEmit
+npm run build
+```
 
-This is a **local single-owner starter**, not a production-ready multi-tenant SaaS. Bind to `127.0.0.1`, not a public interface. Do not port-forward it. Public deployment needs HTTPS and secure cookies, verified domain ownership for any future checks, RBAC and tenant isolation, migrations, stronger rate limits, backups, observability, privacy/retention policy, dependency review, security testing and integration authorization. Do not enter confidential customer data before these controls are evaluated. See ROADMAP.md.
+Analytics calculation tests (PowerShell, from `frontend/`):
+
+```powershell
+npx tsc src/app/analytics-model.ts --strict --target es2020 --module commonjs --skipLibCheck --outDir "$env:TEMP/ghostlead-analytics-test"
+node tests/analytics-model.test.cjs "$env:TEMP/ghostlead-analytics-test/analytics-model.js"
+```
+
+Tests use isolated temporary databases or in-memory fixtures. They do not seed the application workspace. Passing these checks does not establish production security or scalability.
+
+## Storage and security
+
+The default database is `data/ghostlead.db`. Stop the backend before backing up the entire `data/` directory to a secure location outside the repository. Do not commit the database, real customer records, credentials, tokens, private exports or backups. Review staged files before every commit. Deleting a website or monitor can cascade to dependent records; back up important data first.
+
+The current release is designed for a single-owner local workspace. Do not expose either development server publicly or port-forward it. Public operation requires further security engineering, tenant isolation, HTTPS, access controls, privacy safeguards, monitoring infrastructure and deployment testing.
+
+## Development roadmap
+
+| Milestone | Status at v0.2.0 |
+| --- | --- |
+| Application foundation (v0.1.0) | Released |
+| Advanced product foundation (v0.2.0) | Released |
+| Domain verification and automated monitoring | Planned |
+| CRM and API integrations | Planned |
+| Real-time alerts and intelligence | Planned |
+| Production security and multi-tenancy | Planned |
+| Billing and subscriptions | Planned |
+| Commercial launch | Planned |
+
+Development takes place on `develop`; `main` holds tagged, stable development milestones. Keep release tags immutable and use new commits for subsequent documentation or code changes.
+
+## Project documentation
+
+- [Frontend migration](INSTALL.md)
+- [Visual journey builder](STAGE-2.3.md)
+- [Analytics centre](STAGE-2.4.md)
+- [Advanced data imports](STAGE-2.5.md)
+- [Roadmap](ROADMAP.md) (original planning notes)
+
+GhostLead is under active development. Automated website discovery, live checks, CRM delivery verification, billing and public deployment are not included in v0.2.0.
