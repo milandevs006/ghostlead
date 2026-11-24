@@ -225,3 +225,83 @@ def remove(kind:str,id:int,s:Session=Depends(auth)):
     obj=s.get(model,id)
     if not obj:raise HTTPException(404,'Record not found.')
     s.delete(obj);s.commit();return {'ok':True}
+
+# Stage 2.3: user-authored workflow layouts, separate from observed events.
+# Additive schema only; existing workspace tables are not changed or seeded.
+from sqlalchemy import update
+from pydantic import ConfigDict
+from typing import Literal
+import json
+
+class JourneyLayout(Base):
+    __tablename__ = 'journey_layouts'
+    site_id: Mapped[int] = mapped_column(ForeignKey('sites.id', ondelete='CASCADE'), primary_key=True)
+    graph_json: Mapped[str] = mapped_column(Text)
+    revision: Mapped[int] = mapped_column(Integer)
+    updated_at: Mapped[str] = mapped_column(String(32))
+
+JourneyLayout.__table__.create(engine, checkfirst=True)
+
+class JourneyNode(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    id: str = Field(min_length=1, max_length=80, pattern=r'^[a-zA-Z0-9_-]+$')
+    kind: Literal['website','form','booking','webhook','crm','notification','other']
+    label: str = Field(min_length=1, max_length=120)
+    x: float = Field(ge=-100000, le=100000, allow_inf_nan=False)
+    y: float = Field(ge=-100000, le=100000, allow_inf_nan=False)
+
+class JourneyEdge(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    id: str = Field(min_length=1, max_length=80, pattern=r'^[a-zA-Z0-9_-]+$')
+    source: str = Field(min_length=1, max_length=80)
+    target: str = Field(min_length=1, max_length=80)
+
+class JourneyInput(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    revision: int = Field(ge=0, le=2147483646)
+    nodes: list[JourneyNode] = Field(max_length=100)
+    edges: list[JourneyEdge] = Field(max_length=300)
+
+def journey_site(s, site_id):
+    if not s.get(Site, site_id):
+        raise HTTPException(404, 'Website not found.')
+
+def journey_response(site_id, row):
+    return {'site_id': site_id, 'revision': row.revision if row else 0,
+            'updated_at': row.updated_at if row else None,
+            **(json.loads(row.graph_json) if row else {'nodes': [], 'edges': []})}
+
+@app.get('/api/journeys/{site_id}')
+def get_journey(site_id: int, s: Session=Depends(auth)):
+    journey_site(s, site_id)
+    return journey_response(site_id, s.get(JourneyLayout, site_id))
+
+@app.put('/api/journeys/{site_id}')
+def save_journey(site_id: int, payload: JourneyInput, s: Session=Depends(auth)):
+    journey_site(s, site_id)
+    ids = {n.id for n in payload.nodes}
+    if len(ids) != len(payload.nodes): raise ValueError('Duplicate node identifiers.')
+    for node in payload.nodes:
+        node.label = clean(node.label, 120, 'Node label')
+    edge_ids, connections = set(), set()
+    for edge in payload.edges:
+        pair = (edge.source, edge.target)
+        if edge.source not in ids or edge.target not in ids or edge.source == edge.target:
+            raise ValueError('Each connection must link two different existing nodes.')
+        if edge.id in edge_ids or pair in connections: raise ValueError('Duplicate connection.')
+        edge_ids.add(edge.id); connections.add(pair)
+    graph = json.dumps(payload.model_dump(include={'nodes','edges'}), ensure_ascii=False)
+    stamp = now()
+    values = dict(graph_json=graph, revision=payload.revision+1, updated_at=stamp)
+    if payload.revision == 0:
+        if s.get(JourneyLayout, site_id): raise HTTPException(409, 'Journey changed. Reload before saving.')
+        s.add(JourneyLayout(site_id=site_id, **values))
+        try: s.commit()
+        except IntegrityError:
+            s.rollback(); raise HTTPException(409, 'Journey changed or website removed. Reload before saving.')
+    else:
+        result = s.execute(update(JourneyLayout).where(JourneyLayout.site_id==site_id, JourneyLayout.revision==payload.revision).values(**values))
+        if result.rowcount != 1:
+            s.rollback(); raise HTTPException(409, 'Journey changed. Reload before saving.')
+        s.commit()
+    return {'site_id':site_id, 'revision':payload.revision+1, 'updated_at':stamp, **json.loads(graph)}

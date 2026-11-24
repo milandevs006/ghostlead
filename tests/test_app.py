@@ -29,7 +29,27 @@ def test_workspace_lifecycle():
     assert c.get('/api/workspace').json()['lead_events']==[]
     assert c.post('/api/import/lead_events',json={'filename':'good.csv','content':h+a+b}).json()=={'rows':2}
     w=c.get('/api/workspace').json(); assert len(w['lead_events'])==2 and len(w['imports'])==1
-    assert c.delete('/api/records/websites/'+str(w['websites'][0]['id'])).status_code==200
+    site_id=w['websites'][0]['id']; route=f'/api/journeys/{site_id}'
+    assert TestClient(app).get(route).status_code==401
+    assert c.get(route).json()['nodes']==[]
+    assert c.get(route).json()['revision']==0
+    nodes=[{'id':'node-a','kind':'website','label':'Test input','x':0,'y':0}, {'id':'node-b','kind':'crm','label':'Test destination','x':240,'y':0}]
+    edges=[{'id':'edge-a','source':'node-a','target':'node-b'}]
+    graph={'revision':0,'nodes':nodes,'edges':edges}
+    assert c.put(route,json={**graph,'edges':[{'id':'bad','source':'node-a','target':'missing'}]}).status_code==400
+    assert c.get(route).json()['revision']==0
+    saved=c.put(route,json=graph); assert saved.status_code==200 and saved.json()['revision']==1
+    assert c.get(route).json()['nodes']==nodes
+    assert c.put(route,json=graph).status_code==409
+    assert c.put(route,json={**graph,'revision':1,'nodes':[],'edges':[]}).status_code==200
+    assert c.get(route).json()['nodes']==[]
+    assert c.put(route,json={**graph,'revision':2}).status_code==200
+    assert c.delete('/api/records/websites/'+str(site_id)).status_code==200
+    assert c.get(route).status_code==404
+    from app.main import engine, JourneyLayout
+    from sqlalchemy.orm import Session
+    with Session(engine) as db:
+        assert db.get(JourneyLayout,site_id) is None
     w=c.get('/api/workspace').json();assert all(w[k]==[] for k in ['websites','monitors','runs','lead_events'])
     assert c.post('/api/logout').status_code==200
     assert c.get('/api/workspace').status_code==401

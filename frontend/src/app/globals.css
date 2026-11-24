@@ -12,3 +12,37 @@ body{font-feature-settings:"ss01" on,"cv11" on;-webkit-font-smoothing:antialiase
 @media(max-width:700px){.shell,.shell.collapsed{display:block}.sidebar{width:240px;z-index:12}.sidebar-brand .brand{font-size:25px}.collapse-control{display:none}.mobile-close{display:inline-flex}.mobile-shade{display:block;position:fixed;inset:0;border:0;background:#1a30495c;z-index:11}.top{padding:0 12px;height:56px}.refresh{font-size:0;gap:0}.heading h1{font-size:26px}.content{padding:16px;gap:13px}.workspace-strip{align-items:flex-start;flex-wrap:wrap}.strip-sub{font-size:11px}.metric{padding:12px}.metric strong{font-size:25px}.metric-icon{width:25px;height:25px}.metric-icon svg{width:15px;height:15px}.journey{justify-content:flex-start;padding:14px;overflow-x:auto}.node{min-width:148px;min-height:78px;padding:10px 8px 10px 37px}.node-icon{left:7px;top:10px;width:24px;height:24px}.connector{flex:none}.panel-head{padding:14px}.command-footer{font-size:10px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 .node:not(:has(.node-icon)){padding:14px;justify-content:normal}
+
+/* Stage 2.3: standalone visual workflow editor. */
+.gl-builder{padding:0 18px 14px}.gl-builder-toolbar,.gl-builder-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 0}.gl-builder-meta,.gl-builder-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.gl-builder-meta>svg{color:#4779b5}.gl-builder-meta div{display:grid;gap:3px}.gl-builder-meta small,.gl-builder-foot{color:#64748b;font-size:12px}.gl-saved,.gl-dirty{font-size:12px;color:#64748b}.gl-dirty{color:#925f1f}.gl-builder-grid{display:grid;grid-template-columns:215px minmax(0,1fr);min-height:520px;border:1px solid #dbe4ee;border-radius:8px;overflow:hidden;background:#fff}.gl-builder-inspector{border-right:1px solid #dbe4ee;background:#fbfcfe}.gl-builder-section{display:grid;gap:10px;padding:15px;border-bottom:1px solid #e5ebf2}.gl-builder-section>small{font-size:10px;letter-spacing:.09em;font-weight:700;color:#667992}.gl-builder-section form,.gl-builder-section label{display:grid;gap:7px}.gl-builder-section form{gap:12px}.gl-builder-section p{font-size:12px;color:#64748b;line-height:1.65;margin:0}.gl-builder-section input,.gl-builder-section select{min-width:0;width:100%}.gl-builder-section button{justify-content:center}.gl-canvas{height:520px;position:relative;background:#f6f9fc;min-width:0}.gl-flow-node{display:flex;align-items:center;gap:10px;min-width:164px;max-width:218px;padding:12px;background:#fff;border:1px solid #c8d5e5;border-radius:7px;box-shadow:0 3px 8px rgba(34,63,96,.06);color:#243d5b;position:relative}.gl-flow-node.selected{border-color:#4779b5;box-shadow:0 0 0 2px #d9e6f6}.gl-flow-node strong,.gl-flow-node small{display:block;overflow-wrap:anywhere}.gl-flow-node strong{font-size:12px;line-height:1.4}.gl-flow-node small{font-size:10px;color:#667992;margin-top:4px}.gl-flow-icon{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:5px;background:#eaf1f9;color:#4779b5}.gl-flow-node .react-flow__handle{width:8px;height:8px;background:#4779b5;border:2px solid white}.gl-canvas-empty{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:min(300px,80%);display:grid;justify-items:center;text-align:center;gap:9px;color:#64748b;font-size:12px;pointer-events:none}.gl-canvas-empty svg{color:#7291b4}.gl-canvas-empty b{font-size:14px;color:#243d5b}.gl-save-notice{font-size:12px;color:#287655;margin:4px 0 12px}.gl-builder-message{padding:25px;color:#64748b}.gl-builder-foot{border-top:1px solid #eef2f6;margin-top:10px}.gl-canvas .react-flow__controls{box-shadow:0 2px 8px #182c451a;border-radius:5px;overflow:hidden}.gl-canvas .react-flow__minimap{border:1px solid #dbe4ee;border-radius:5px;overflow:hidden}.gl-canvas .react-flow__attribution{font-size:9px}
+@media(max-width:850px){.gl-builder-grid{grid-template-columns:1fr}.gl-builder-inspector{display:grid;grid-template-columns:1fr 1fr;border-right:0;border-bottom:1px solid #dbe4ee}.gl-builder-section:last-child{display:none}.gl-canvas{height:440px}}@media(max-width:520px){.gl-builder{padding:0 10px 10px}.gl-builder-inspector{grid-template-columns:1fr}.gl-canvas{height:400px}.gl-canvas .react-flow__minimap{display:none}.gl-builder-actions{gap:5px}.gl-builder-foot{font-size:11px}}
+/* GhostLead — Journey Builder Light Theme */
+
+.gl-canvas {
+    color-scheme: light;
+    background: #f6f9fc;
+}
+
+.gl-canvas .react-flow {
+    color-scheme: light;
+    background-color: #f6f9fc !important;
+}
+
+.gl-canvas .react-flow__background {
+    background-color: #f6f9fc !important;
+}
+
+.gl-canvas .react-flow__minimap {
+    background-color: #ffffff !important;
+}
+
+.gl-canvas .react-flow__controls-button {
+    background-color: #ffffff !important;
+    color: #244b78;
+    fill: #244b78;
+    border-bottom: 1px solid #dce4ed;
+}
+
+.gl-canvas .react-flow__controls-button:hover {
+    background-color: #eaf1fa !important;
+}
