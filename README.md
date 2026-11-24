@@ -2,108 +2,179 @@
 
 # GhostLead
 
-![GhostLead — Every lead matters. Trace journeys, investigate gaps, protect opportunities.](docs/assets/ghostlead-hero.gif)
+![GhostLead — Every lead matters. Stage 3.2 public DNS intelligence.](docs/assets/v0.3-alpha.2/hero.gif)
 
 **Lead integrity & revenue protection**
 
-[![Version v0.2.0](https://img.shields.io/badge/version-v0.2.0-234A79?style=for-the-badge)](https://github.com/milandevs006/ghostlead/tree/v0.2.0)
-![Active development](https://img.shields.io/badge/status-active_development-326BC1?style=for-the-badge)
-![Zero demo data](https://img.shields.io/badge/data-zero_demo-287A65?style=for-the-badge)
-![Local workspace](https://img.shields.io/badge/deployment-local-526D8A?style=for-the-badge)
+![Development version](https://img.shields.io/badge/develop-v0.3.0--alpha.2-2867A7?style=for-the-badge)
+[![Stable release](https://img.shields.io/badge/stable-v0.2.0-16796E?style=for-the-badge)](https://github.com/milandevs006/ghostlead/tree/v0.2.0)
+![Stage](https://img.shields.io/badge/stage-3.2-597593?style=for-the-badge)
+![Data](https://img.shields.io/badge/data-zero_demo-16796E?style=for-the-badge)
 
-[Overview](#the-mission) · [Features](#features) · [Architecture](#architecture) · [Quick start](#getting-started-windows--vs-code) · [Roadmap](#development-roadmap)
+[What is GhostLead?](#what-is-ghostlead) · [What's new](#whats-new-in-stage-32) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Roadmap](#development-roadmap)
 
-[Static graphics for reduced motion](docs/assets/ghostlead-hero-static.png) · [Static workflow](docs/assets/ghostlead-flow-static.png)
+[Static, reduced-motion edition](docs/assets/v0.3-alpha.2/STATIC.md)
 
 </div>
 
 ---
 
-## The mission
+## What is GhostLead?
 
 **Are business enquiries slipping through the cracks without anyone noticing?**
 
-GhostLead is a local-first platform for documenting customer acquisition workflows, analysing lead delivery records and investigating potential failures across digital business channels. Our vision is a commercial monitoring platform for businesses and agencies.
+GhostLead is an evolving lead integrity platform for businesses and digital agencies. It brings customer acquisition journeys, recorded lead events, monitoring observations and domain intelligence together in one workspace.
+
+- **Visualise** how a customer's enquiry is supposed to move through a business.
+- **Investigate** unmatched lead events and recorded failures.
+- **Understand** public domain infrastructure with real DNS lookups.
 
 > [!IMPORTANT]
-> **v0.2.0 — Advanced Product Foundation** is a working local application. Automated website monitoring, discovery and CRM delivery verification are planned, not available in this release.
+> This README describes **v0.3.0-alpha.2**, the Stage 3.2 development milestone on `develop`. The latest stable tagged release remains **v0.2.0**. Live website crawling, scheduled checks, automated form submissions and CRM delivery verification are not implemented yet. The application is a single-owner local workspace, not a production-ready SaaS.
 
-![Illustrative workflow: Capture records manually or through imports, map journeys, reconcile events, investigate using analytics and incidents.](docs/assets/ghostlead-flow.gif)
+## What's new in Stage 3.2
 
-*Conceptual workflow using the current record-based functionality; the moving signals are decorative, not live activity or customer data.*
+![Animated five-step DNS workflow: select hostname, query public resolver, classify records, review map, save and export.](docs/assets/v0.3-alpha.2/dns-flow.gif)
 
-## Features
+*Illustrative workflow; moving signals are animation, not live results.*
 
-- **Workspace and authentication:** first-time owner setup, login/logout and persistent local storage.
-- **Overview:** website inventory, recorded check results, lead matching and incident summaries.
-- **Monitors:** configure monitors and manually record or import actual observations.
-- **Journey builder:** create, connect, edit and save website-specific workflow stages using React Flow. Saved layouts do not execute monitoring jobs.
-- **Lead explorer:** reconcile source and destination events using matching website and event identifiers.
-- **Analytics:** website/date filters, monitoring trends, lead-flow diagrams, failure heatmaps, latency percentiles and website comparisons.
-- **Incidents:** inspect failures derived from recorded observations.
-- **Data imports:** CSV, XLSX and JSON with preview, validation, duplicate rejection and atomic confirmation.
-- **Reports:** export recorded data and analytical summaries as CSV.
-- **Interface:** responsive white-theme design, collapsible sidebar, workspace search and subtle transitions.
+| Capability | What it does |
+| --- | --- |
+| Public website intelligence | Retrieves public DNS records for a registered hostname when the user requests a lookup. |
+| DNS relationship map | Groups published record types into an understandable visual map. |
+| Provider hints | Suggests a DNS provider based on known nameserver suffixes; not proof of web hosting. |
+| Email and delegation signals | Displays published SPF, DMARC and DS information where available. |
+| Lookup history | Stores up to 20 snapshots per website, including errors. |
+| Record explorer and exports | Filters the selected snapshot and exports actual results as CSV or JSON. |
+| Verification diagnostics | Separates missing names, missing TXT records, mismatches, timeouts and resolver failures. |
+
+## How it works
+
+![Two paths: public DNS intelligence needs no ownership proof; domain verification requires explicit permission and owner-published TXT token.](docs/assets/v0.3-alpha.2/access-model.gif)
+
+### Path A — Public website intelligence (available now)
+
+1. Register a public website in your workspace.
+2. Open **Website intelligence**, select the website and click **Analyse domain**.
+3. GhostLead queries a fixed public recursive DNS resolver, `8.8.8.8`, and classifies the results.
+4. Explore records, provider hints and the relationship map. Review history or export the selected snapshot.
+
+No ownership verification is required for this public DNS feature. No lookup is made simply by opening the page. GhostLead does not connect to the target website, its returned IP addresses or its nameservers directly during this phase.
+
+### Path B — Domain verification (implemented in Stage 3.1)
+
+1. Select a registered website under **Verification** and confirm explicit testing permission.
+2. Generate a unique challenge and share its TXT record instructions with the authorised DNS administrator.
+3. The administrator publishes the exact token under `_ghostlead-verification.<hostname>`.
+4. Click **Check DNS record**. GhostLead compares the returned token and records time-limited proof of control.
+
+Challenges expire after 24 hours; successful verification is valid for 7 days and can be revoked. Never request the owner's DNS password. If you cannot obtain permission and cooperation, leave the website unverified. Live verification is still awaiting an authorised domain test. Future active monitoring will also require network safety controls.
+
+### Read the DNS results
+
+![Animated record explorer explaining A, AAAA, NS, CNAME, MX, TXT, SOA, DS and DMARC.](docs/assets/v0.3-alpha.2/record-explorer.gif)
+
+| Result | Interpretation |
+| --- | --- |
+| Found | The resolver returned one or more values. |
+| No answer | The queried name exists but the requested record type was not returned. |
+| NXDOMAIN | The queried DNS name does not exist according to the resolver. |
+| Timeout / resolver error | The lookup could not complete; not evidence that a record is absent. |
+
+Missing records are not automatically website failures. Queries target the exact hostname (and `_dmarc.<hostname>` for DMARC), not a complete zone inventory. SPF/DMARC/DS signals are not a full security audit, inherited policy check or DNSSEC validation. Reported TTL is the resolver-returned TTL.
+
+<details>
+<summary><b>Lookup limits and data handling</b></summary>
+
+- Nine fixed DNS queries: A, AAAA, NS, CNAME, MX, TXT, SOA, DS and DMARC TXT.
+- Three-second query lifetime, four workers, one lookup at a time and a process-local 15-second cooldown.
+- Up to 20 values per query, 1,024 characters per value; truncated output is identified.
+- Retains 20 snapshots per website. Older snapshots are pruned; deleting a website removes its snapshots.
+- Uses conventional DNS via Google Public DNS, not encrypted DNS; no system resolver fallback. Do not submit private/internal hostnames.
+- IP literals, local/reserved names and non-standard web ports are rejected by the hostname validator. This is not yet a complete SSRF defence.
+- No monitoring observations or lead events are generated by DNS lookups.
+
+See [Stage 3.2 implementation notes](STAGE-3.2.md) for details.
+
+</details>
 
 ---
+
+## Product capabilities
+
+| Workspace | Available functionality |
+| --- | --- |
+| Overview | Website inventory, recorded checks, lead matching, incident summaries. |
+| Monitors | Configure monitors and enter or import actual observations. |
+| Journey builder | Create, connect and persist website-specific workflow layouts; does not execute monitoring. |
+| Lead explorer | Match source and destination events using website and event identifiers. |
+| Analytics | Date and website filters, monitoring trends, lead flow, failure heatmaps, latency percentiles and comparisons. |
+| Incidents | Review failures derived from recorded observations. |
+| Data imports | CSV, XLSX and JSON with preview, validation, duplicate rejection and atomic confirmation. |
+| Reports | CSV exports of recorded data and analytical summaries. |
+| Verification | DNS TXT proof of control, explicit permission, expiry and revocation. |
+| Website intelligence | Public DNS lookup, relationship map, historical snapshots and exports. |
+
+**Zero demo data.** There are no pre-created accounts, fake businesses, synthetic monitoring results or fabricated revenue figures in the workspace. Unmatched source events are not proof of lost customers. Missing measurements stay empty. Existing lead analytics are calculated from user-supplied records, not live monitoring. See [Stage 2.4](STAGE-2.4.md) for metric definitions, including the different pass-rate denominators used by Overview and Analytics.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    U[Owner workspace] --> F[Next.js / TypeScript]
+    U[Workspace owner] --> F[Next.js / TypeScript]
     F --> P[API proxy]
     P --> B[FastAPI]
-    B --> A[Authentication and sessions]
-    B --> J[Journey layouts]
-    B --> R[Records and imports]
-    A --> D[(SQLite)]
-    J --> D
-    R --> D
     F --> V[React Flow / ECharts]
+    B --> R[Sessions, records, imports and journeys]
+    B --> D[Domain verification]
+    B --> I[DNS intelligence]
+    D --> Q[dnspython / fixed public resolver]
+    I --> Q
+    Q --> E[Google Public DNS 8.8.8.8]
+    R --> S[(SQLite)]
+    D --> S
+    I --> S
 ```
 
-*Current architecture; analytics are calculated on the frontend from recorded data.*
+The DNS modules operate separately from customer lead records. There is no automated HTTP monitoring worker in this milestone.
 
 ## Technology stack
 
 <div align="center">
 
 ![Next.js](https://img.shields.io/badge/Next.js-172E4C?style=for-the-badge&logo=nextdotjs&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-326BC1?style=for-the-badge&logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-234A79?style=for-the-badge&logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-326BC1?style=for-the-badge&logo=typescript&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-326BC1?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-287A65?style=for-the-badge&logo=fastapi&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-16796E?style=for-the-badge&logo=fastapi&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-234A79?style=for-the-badge&logo=sqlite&logoColor=white)
-![Apache ECharts](https://img.shields.io/badge/ECharts-526D8A?style=for-the-badge&logo=apacheecharts&logoColor=white)
+![ECharts](https://img.shields.io/badge/Apache_ECharts-526D8A?style=for-the-badge&logo=apacheecharts&logoColor=white)
 ![React Flow](https://img.shields.io/badge/React_Flow-326BC1?style=for-the-badge)
+![dnspython](https://img.shields.io/badge/dnspython-16796E?style=for-the-badge)
 
 </div>
 
-
-| Layer | Technology |
+| Layer | Tools |
 | --- | --- |
-| Frontend | Next.js, React, TypeScript, custom CSS |
-| Visualisation | Apache ECharts, React Flow |
-| Motion and icons | Motion, Lucide |
-| Backend | Python, FastAPI, Uvicorn |
+| UI | Next.js, React, TypeScript, custom CSS, Motion, Lucide |
+| Visualisation | React Flow, Apache ECharts |
+| API | Python, FastAPI, Uvicorn |
 | Persistence | SQLAlchemy 2, SQLite |
-| Authentication | Argon2 password hashing, server-side sessions |
-| Data formats | CSV, JSON, XLSX (openpyxl) |
-| Testing | Pytest, HTTPX, Node.js, TypeScript |
-| Version control | Git, GitHub |
+| Identity | Argon2 password hashing, server-side sessions |
+| DNS | dnspython, fixed public recursive DNS |
+| Imports | CSV, JSON, openpyxl, defusedxml |
+| Tests | Pytest, HTTPX, Node.js, TypeScript |
 
----
+## Quick start
 
-## Getting started (Windows / VS Code)
+**Windows / VS Code.** Install Python 3.11 or a compatible version, Node.js (developed using Node.js 24), npm and Git. No paid services or virtual environment are required for local development. Internet access is required for dependency installation and public DNS lookups.
 
-Install Python 3.11 or a compatible version, Node.js (the release was developed with Node.js 24), npm and Git. Internet access is required for dependency installation. No paid API or hosting subscription is needed for local development. The commands below use the existing Python environment; a virtual environment is optional.
-
-Clone the repository if you do not already have a local copy (GitHub access is required for a private repository):
+If you do not already have a working clone (repository access required):
 
 ```powershell
 git clone https://github.com/milandevs006/ghostlead.git
 cd ghostlead
+git checkout develop
 ```
 
 ### Terminal 1 — backend (repository root)
@@ -121,131 +192,117 @@ npm ci
 npm run dev
 ```
 
-Open **http://localhost:3000**. Keep both terminals running. Create an owner account on a fresh installation or sign in with your existing credentials. The legacy v0.1 interface is still available at http://127.0.0.1:8000; both interfaces use the same backend and database. Use port 3000 for the current frontend. Stop either server with Ctrl+C.
+Open **http://localhost:3000**. Keep both terminals running. Create an owner account only for a fresh installation; otherwise sign in with your existing credentials. The legacy UI remains at `http://127.0.0.1:8000`; use port 3000 for the current interface. If an existing installation unexpectedly shows setup, stop and check the database location before creating another account.
 
-If an existing installation unexpectedly displays first-time setup, stop and verify its database location before creating another account. If you already have a working local repository, do not clone over it or replace its data directory.
+<details>
+<summary><b>Data imports and storage</b></summary>
 
-## Data ownership and imports
+Download header-only templates from Data imports. Register websites before dependent records. Validate and preview the file, then confirm to save atomically. Invalid or duplicate records reject the batch.
 
-**No demo data.** No pre-created account, seed records, artificial monitoring results or fabricated revenue figures are distributed. Business records are entered or imported by the authenticated owner. The application also creates internal account/session metadata, saved workflow metadata and import history as needed.
-
-Download the header-only templates from **Data imports**. Register websites before importing dependent monitor and lead records. Select the file, validate and preview it, then confirm the import. Preview does not persist records; confirmation validates again and commits atomically. Invalid or duplicate records reject the batch.
-
-| Record type | Fields |
+| Record type | Template fields |
 | --- | --- |
 | Websites | `name,url` |
 | Monitors | `website_url,name,kind` |
 | Monitor results | `website_url,monitor_name,observed_at,status,latency_ms,detail` |
 | Lead events | `website_url,event_key,stage,observed_at` |
 
-The new import centre accepts UTF-8 CSV, a single-sheet XLSX workbook without formulas, or a JSON array of objects. Limits: 1 MB and 10,000 rows per file. Use exact template field names and timezone-aware ISO 8601 timestamps. For lead records, use opaque event identifiers rather than personal information. See [Stage 2.5](STAGE-2.5.md) for formatting details.
+CSV (UTF-8), XLSX (single sheet, no formulas) and JSON arrays of objects are supported. Limits: 1 MB and 10,000 rows per file. Use timezone-aware ISO 8601 timestamps and opaque lead identifiers rather than personal information.
 
-Unmatched source events are not proof of lost customers. Check outcomes reflect recorded observations, not independently verified live health. Missing measurements remain empty. The overview excludes inconclusive checks from its pass-rate denominator; the Analytics Centre includes them in its recorded-check pass rate. These metrics should not be treated as identical. Analytics time buckets use UTC; see [Stage 2.4](STAGE-2.4.md) for matching and percentile definitions.
+Default database: `data/ghostlead.db`. Stage 3.1 and 3.2 add tables for domain proof and DNS snapshots without replacing the database. Stop the backend before backing up the entire `data/` directory to a secure location outside Git. Do not commit database files, credentials, customer records, tokens, private exports or backups. Deleting websites or monitors can cascade to dependent records.
 
-## Project structure
+</details>
 
 <details>
-<summary>Expand the repository tree</summary>
+<summary><b>Repository structure</b></summary>
 
 ```text
 ghostlead/
-├── app/                       # FastAPI, database, authentication and legacy UI
+├── app/
 │   ├── main.py
 │   ├── import_formats.py
+│   ├── domain_verification.py
+│   ├── dns_intelligence.py
 │   └── static/
-├── frontend/                  # Current Next.js frontend
+├── frontend/
 │   ├── src/app/
 │   │   ├── page.tsx
-│   │   ├── globals.css
 │   │   ├── journey-builder.tsx
 │   │   ├── analytics-centre.tsx
-│   │   ├── analytics-model.ts
-│   │   └── import-centre.tsx
+│   │   ├── import-centre.tsx
+│   │   ├── domain-verification.tsx
+│   │   └── dns-intelligence.tsx
 │   ├── tests/
-│   ├── package.json
-│   └── package-lock.json
-├── templates/                 # Header-only CSV templates
-├── tests/                     # Isolated backend tests
-├── data/                      # Local database, created at runtime; not committed
+│   └── package.json
+├── tests/
+│   ├── test_app.py
+│   ├── test_domain_verification.py
+│   └── test_dns_intelligence.py
+├── templates/
+├── docs/assets/v0.3-alpha.2/
+├── data/                     # Local runtime data; not committed
 ├── requirements.txt
 ├── requirements-dev.txt
-├── README.md
-└── ROADMAP.md
+├── STAGE-3.1.md
+├── STAGE-3.2.md
+└── README.md
 ```
 
 </details>
 
-## Testing
+## Testing and safety
 
 <details>
-<summary>Expand backend, frontend and analytics test commands</summary>
+<summary><b>Run the backend, frontend and analytics tests</b></summary>
 
-Backend (repository root):
+From repository root:
 
 ```powershell
 python -m pip install -r requirements-dev.txt
 python -m pytest -v
 ```
 
-Frontend (from `frontend/`):
+From `frontend/`:
 
 ```powershell
 npx tsc --noEmit
 npm run build
-```
-
-Analytics calculation tests (PowerShell, from `frontend/`):
-
-```powershell
 npx tsc src/app/analytics-model.ts --strict --target es2020 --module commonjs --skipLibCheck --outDir "$env:TEMP/ghostlead-analytics-test"
 node tests/analytics-model.test.cjs "$env:TEMP/ghostlead-analytics-test/analytics-model.js"
 ```
 
-Tests use isolated temporary databases or in-memory fixtures. They do not seed the application workspace. Passing these checks does not establish production security or scalability.
-
 </details>
 
-## Storage and security
+Stage 3.2 was delivered with eight passing backend tests in the development sandbox using mocked DNS and isolated databases. A real public DNS lookup has subsequently been observed in the local UI. This is not a certification of the current repository or production readiness. Live owner-authorised domain verification remains pending.
 
-The default database is `data/ghostlead.db`. Stop the backend before backing up the entire `data/` directory to a secure location outside the repository. Do not commit the database, real customer records, credentials, tokens, private exports or backups. Review staged files before every commit. Deleting a website or monitor can cascade to dependent records; back up important data first.
-
-The current release is designed for a single-owner local workspace. Do not expose either development server publicly or port-forward it. Public operation requires further security engineering, tenant isolation, HTTPS, access controls, privacy safeguards, monitoring infrastructure and deployment testing.
-
----
+Do not expose the development servers publicly. Public deployment requires further network isolation, tenant isolation, HTTPS, access controls, privacy safeguards and deployment testing. Active monitoring of third-party websites is outside the scope of this alpha.
 
 ## Development roadmap
 
-```mermaid
-flowchart LR
-    A["v0.1.0 / Foundation"] --> B["v0.2.0 / Advanced foundation"] --> C["Next / Automated monitoring"] --> D["Future / CRM and intelligence"] --> E["Future / Security and launch"]
-    classDef released fill:#e3f0eb,stroke:#287a65,color:#172e4c
-    classDef next fill:#e8f0fa,stroke:#326bc1,color:#172e4c
-    class A,B released
-    class C next
-```
+![Animated roadmap from 3.1 domain proof and 3.2 DNS intelligence to next phase 3.3 network safety and planned later stages.](docs/assets/v0.3-alpha.2/roadmap.gif)
 
-| Milestone | Status at v0.2.0 |
+| Milestone | Status |
 | --- | --- |
-| Application foundation (v0.1.0) | Released |
-| Advanced product foundation (v0.2.0) | Released |
-| Domain verification and automated monitoring | Planned |
-| CRM and API integrations | Planned |
-| Real-time alerts and intelligence | Planned |
-| Production security and multi-tenancy | Planned |
-| Billing and subscriptions | Planned |
-| Commercial launch | Planned |
+| v0.1.0 — Foundation | Released |
+| v0.2.0 — Advanced foundation | Released / latest stable tag |
+| 3.1 — Domain ownership verification | Implemented; live verification pending |
+| 3.2 — Public website intelligence | Delivered; live public DNS lookup observed |
+| 3.3 — Network safety controls | Next |
+| 3.4 — Isolated testing environment | Planned |
+| 3.5 — Website and form discovery | Planned |
+| 3.6 — Broken link and performance analysis | Planned |
+| 3.7 — Automated monitoring engine | Planned |
+| 3.8 — Scheduled monitoring | Planned |
+| 3.9 — Evidence and incident detection | Planned |
+| 3.10 — Security and integration testing | Planned |
+| v0.3.0 — Stable automated monitoring release | Target, not released |
 
-Development takes place on `develop`; `main` holds tagged, stable development milestones. Keep release tags immutable and use new commits for subsequent documentation or code changes.
+Future major milestones: CRM/API integrations, real-time intelligence, production security and multi-tenancy, billing, and commercial launch.
 
 ## Project documentation
 
-- [Frontend migration](INSTALL.md)
-- [Visual journey builder](STAGE-2.3.md)
-- [Analytics centre](STAGE-2.4.md)
-- [Advanced data imports](STAGE-2.5.md)
-- [Roadmap](ROADMAP.md) (original planning notes)
+[Frontend migration](INSTALL.md) · [Journey builder](STAGE-2.3.md) · [Analytics](STAGE-2.4.md) · [Imports](STAGE-2.5.md) · [Domain verification](STAGE-3.1.md) · [Public DNS intelligence](STAGE-3.2.md) · [Original roadmap](ROADMAP.md)
 
-GhostLead is under active development. Automated website discovery, live checks, CRM delivery verification, billing and public deployment are not included in v0.2.0.
+`develop` is the active development branch; `main` is the stable release branch. Each development phase updates the README, animation assets, version, roadmap, test evidence and installation notes. Keep existing release tags immutable. No fake metrics or live-status claims in the animations.
 
 ---
 
@@ -253,6 +310,6 @@ GhostLead is under active development. Automated website discovery, live checks,
 
 **GHOSTLEAD / EVERY LEAD MATTERS.**
 
-Built with purpose. Developed in versioned milestones, with no fabricated metrics.
+Build with purpose. Verify with evidence. Develop in versioned milestones.
 
 </div>
