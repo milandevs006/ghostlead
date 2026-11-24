@@ -72,7 +72,7 @@ class ImportLog(Base):
     rows: Mapped[int]=mapped_column(Integer)
     created_at: Mapped[str]=mapped_column(String(32))
 Base.metadata.create_all(engine)
-app=FastAPI(title='GhostLead',version='0.1.0',docs_url=None,redoc_url=None,openapi_url=None)
+app=FastAPI(title='GhostLead',version='0.3.0-alpha.1',docs_url=None,redoc_url=None,openapi_url=None)
 app.mount('/static',StaticFiles(directory=ROOT/'app/static'),name='static')
 ph=PasswordHasher()
 COOKIE='ghostlead_session'
@@ -329,3 +329,97 @@ def file_import(kind:str, action:Literal['preview','commit'], p:FileImport, s:Se
         s.rollback()
         msg='Duplicate record or invalid reference.' if isinstance(exc,IntegrityError) else str(exc)
         raise ValueError(f'Row {line}: {msg} No records saved.') from None
+
+# Stage 3.1 — exact-host DNS verification. No website requests or monitoring jobs.
+from . import domain_verification as dv
+
+class DomainProof(Base):
+    __tablename__ = 'domain_proofs'
+    site_id: Mapped[int] = mapped_column(ForeignKey('sites.id', ondelete='CASCADE'), primary_key=True)
+    hostname: Mapped[str] = mapped_column(String(253))
+    token: Mapped[str] = mapped_column(String(100))
+    issued_at: Mapped[int] = mapped_column(Integer)
+    permission_at: Mapped[int] = mapped_column(Integer)
+    checked_at: Mapped[int] = mapped_column(Integer, default=0)
+    verified_until: Mapped[int] = mapped_column(Integer, default=0)
+    last_result: Mapped[str] = mapped_column(String(20), default='pending')
+
+DomainProof.__table__.create(engine, checkfirst=True)
+
+class VerificationConsent(BaseModel):
+    authorized: bool = Field(strict=True)
+
+
+def verification_site(s, site_id):
+    site = s.get(Site, site_id)
+    if not site: raise HTTPException(404, 'Website not found.')
+    return site
+
+
+def verification_state(site, proof):
+    try: host = dv.hostname_for(site.url)
+    except ValueError as exc:
+        return {'site_id':site.id, 'hostname':None, 'status':'unsupported', 'message':str(exc)}
+    t = int(time.time())
+    if not proof or proof.hostname != host:
+        return {'site_id':site.id, 'hostname':host, 'status':'unverified'}
+    status = ('verified' if proof.verified_until > t else 'expired' if proof.verified_until or proof.issued_at + dv.CHALLENGE_SECONDS <= t else 'pending')
+    return {'site_id':site.id, 'hostname':host, 'status':status, 'record_name':dv.PREFIX+host,
+            'record_value':proof.token, 'challenge_expires_at':proof.issued_at+dv.CHALLENGE_SECONDS,
+            'permission_at':proof.permission_at, 'checked_at':proof.checked_at or None,
+            'verified_until':proof.verified_until or None, 'last_result':proof.last_result,
+            'retry_at':proof.checked_at+dv.RETRY_SECONDS if proof.checked_at else None}
+
+@app.get('/api/verification/{site_id}')
+def domain_status(site_id:int, s:Session=Depends(auth)):
+    site = verification_site(s, site_id)
+    return verification_state(site, s.get(DomainProof, site_id))
+
+@app.post('/api/verification/{site_id}/challenge')
+def domain_challenge(site_id:int, p:VerificationConsent, s:Session=Depends(auth)):
+    site = verification_site(s, site_id)
+    if not p.authorized: raise ValueError('Confirm explicit permission before requesting verification.')
+    host = dv.hostname_for(site.url)
+    t = int(time.time())
+    proof = s.get(DomainProof, site_id)
+    values = dict(hostname=host, token='ghostlead-verification='+secrets.token_urlsafe(32),
+                  issued_at=t, permission_at=t, checked_at=0, verified_until=0, last_result='pending')
+    if proof:
+        for k,v in values.items(): setattr(proof,k,v)
+    else:
+        proof = DomainProof(site_id=site_id, **values)
+        s.add(proof)
+    s.commit()
+    return verification_state(site, proof)
+
+@app.post('/api/verification/{site_id}/check')
+def domain_check(site_id:int, s:Session=Depends(auth)):
+    site = verification_site(s, site_id)
+    proof = s.get(DomainProof, site_id)
+    state = verification_state(site, proof)
+    if state['status'] != 'pending':
+        raise HTTPException(409, 'Generate a new challenge before checking DNS.')
+    t = int(time.time())
+    if proof.checked_at and t < proof.checked_at+dv.RETRY_SECONDS:
+        raise HTTPException(429, 'Wait ten seconds between DNS checks.')
+    host, token, issued, previous = proof.hostname, proof.token, proof.issued_at, proof.checked_at
+    # Claim one attempt before DNS; release the database transaction during the lookup.
+    q = update(DomainProof).where(DomainProof.site_id==site_id, DomainProof.token==token, DomainProof.checked_at==previous).values(checked_at=t,last_result='checking')
+    if s.execute(q).rowcount != 1:
+        s.rollback(); raise HTTPException(409, 'Challenge changed. Reload verification.')
+    s.commit()
+    result = dv.lookup_txt(host, token)
+    finish = int(time.time())
+    valid = result == 'matched' and finish < issued+dv.CHALLENGE_SECONDS
+    q = update(DomainProof).where(DomainProof.site_id==site_id, DomainProof.token==token, DomainProof.checked_at==t).values(last_result=result if finish < issued+dv.CHALLENGE_SECONDS else 'expired',verified_until=finish+dv.PROOF_SECONDS if valid else 0)
+    if s.execute(q).rowcount != 1:
+        s.rollback(); raise HTTPException(409, 'Challenge changed. Reload verification.')
+    s.commit()
+    return verification_state(verification_site(s, site_id), s.get(DomainProof, site_id))
+
+@app.delete('/api/verification/{site_id}')
+def domain_revoke(site_id:int, s:Session=Depends(auth)):
+    site = verification_site(s, site_id)
+    s.execute(delete(DomainProof).where(DomainProof.site_id==site_id))
+    s.commit()
+    return verification_state(site, None)
