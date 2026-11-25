@@ -2,18 +2,18 @@
 
 # GhostLead
 
-![GhostLead — Every lead matters. Stage 3.7 automated lab monitoring.](docs/assets/v0.3-alpha.7/hero.gif)
+![GhostLead — Every lead matters. Stage 3.8 scheduled lab monitoring.](docs/assets/v0.3-alpha.8/hero.gif)
 
 **Lead integrity & revenue protection**
 
-![Development version](https://img.shields.io/badge/develop-v0.3.0--alpha.7-2867A7?style=for-the-badge)
+![Development version](https://img.shields.io/badge/develop-v0.3.0--alpha.8-2867A7?style=for-the-badge)
 [![Stable release](https://img.shields.io/badge/stable-v0.2.0-16796E?style=for-the-badge)](https://github.com/milandevs006/ghostlead/tree/v0.2.0)
-![Stage](https://img.shields.io/badge/stage-3.7-597593?style=for-the-badge)
+![Stage](https://img.shields.io/badge/stage-3.8-597593?style=for-the-badge)
 ![Data](https://img.shields.io/badge/data-zero_demo-16796E?style=for-the-badge)
 
-[What is GhostLead?](#what-is-ghostlead) · [What's new](#whats-new-in-stage-37) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Roadmap](#development-roadmap)
+[What is GhostLead?](#what-is-ghostlead) · [What's new](#whats-new-in-stage-38) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Roadmap](#development-roadmap)
 
-[Static, reduced-motion edition](docs/assets/v0.3-alpha.7/STATIC.md)
+[Static, reduced-motion edition](docs/assets/v0.3-alpha.8/STATIC.md)
 
 </div>
 
@@ -30,9 +30,33 @@ GhostLead is an evolving lead integrity platform for businesses and digital agen
 - **Understand** public domain infrastructure with real DNS lookups.
 
 > [!IMPORTANT]
-> This README describes **v0.3.0-alpha.7**, the Stage 3.7 development milestone on `develop`. The latest stable tagged release remains **v0.2.0**. External website crawling, scheduled checks, automated form submissions and CRM delivery verification are not implemented yet. The application is a single-owner local workspace, not a production-ready SaaS.
+> This README describes **v0.3.0-alpha.8**, the Stage 3.8 development milestone on `develop`. The latest stable tagged release remains **v0.2.0**. External website crawling, persistent production scheduling, automated form submissions and CRM delivery verification are not implemented yet. The application is a single-owner local workspace, not a production-ready SaaS.
 
-## What's new in Stage 3.7
+## What's new in Stage 3.8
+
+![Scheduled monitoring workflow: acquire guard, run, wait, stop.](docs/assets/v0.3-alpha.8/schedule-flow.gif)
+
+The standalone scheduler executes a finite series of real monitoring runs against **GhostLead Lab only**. It starts immediately, waits after each attempt, and never overlaps its own runs. Failed or partial attempts are recorded and do not trigger automatic retries. A second CLI scheduler is rejected while the first holds the fixed loopback TCP bind on port 5502. The guard does not prevent manual discovery or monitoring invocations.
+
+Start `python -m lab.server` in one terminal. In a second terminal at the repository root:
+
+```powershell
+python -m lab.scheduler --interval-seconds 5 --runs 3
+```
+
+Default: three runs, 30 seconds between finished attempts. Allowed intervals: 5–3600 seconds; allowed run counts: 1–100. Ctrl+C requests a cooperative stop; a terminal-wide interrupt may also interrupt the current discovery worker. No persistent scheduler, automatic restart, external HTTP target or workspace database writes.
+
+![Structured lifecycle events.](docs/assets/v0.3-alpha.8/schedule-events.gif)
+
+Each stdout line is a JSON event (`session_started`, `run_started`, `run_finished`, `waiting`, `session_stopped`) with session ID and UTC timestamp. Results include the original monitoring run ID, execution status and observed health; the final summary counts attempted runs by outcome. A completed execution can still detect website issues. To retain lab-only output outside the repository:
+
+```powershell
+python -m lab.scheduler --interval-seconds 5 --runs 3 | Set-Content -Encoding utf8 "$env:TEMP\ghostlead-lab-schedule.jsonl"
+```
+
+See [Stage 3.8](STAGE-3.8.md) for bounds, stop semantics, exit codes, testing and GitHub commands. External connection-level safeguards remain pending. No monitoring data is injected into the actual workspace.
+
+## Automated monitoring engine (Stage 3.7)
 
 ![Automated monitoring run: identify, discover, analyse, evaluate and report.](docs/assets/v0.3-alpha.7/run-flow.gif)
 
@@ -55,7 +79,7 @@ $r.analysis.summary
 $r.analysis.findings | Format-Table path,status,elapsed_ms,category,severity
 ```
 
-A completed run is not an assertion of good website health. A local integration run observed seven pages and three deliberate fixture problems (404, 503 and a slow response). The worker runs with a 32-second subprocess timeout; startup and cleanup may add time. It is restricted to the fixed loopback origin and inherits the discovery limits. No external HTTP monitoring, automatic scheduling, real form submissions or database writes. Public-address pinning and external connection-level SSRF enforcement remain pending. See [Stage 3.7](STAGE-3.7.md).
+A completed run is not an assertion of good website health. A local integration run observed seven pages and three deliberate fixture problems (404, 503 and a slow response). The worker runs with a 32-second subprocess timeout; startup and cleanup may add time. It is restricted to the fixed loopback origin and inherits the discovery limits. The single-run engine does not perform external HTTP monitoring, scheduling, real form submissions or database writes. Public-address pinning and external connection-level SSRF enforcement remain pending. See [Stage 3.7](STAGE-3.7.md).
 
 ## Lab analysis (Stage 3.6)
 
@@ -107,7 +131,7 @@ python -m lab.discovery
 
 No custom target argument, external host, query string, redirect following, API crawling or form submission is supported. The runner has a 20-page cap, 256 KiB response cap, four-second socket timeout and a cooperative 25-second discovery budget (not a hard wall-clock deadline). Its health marker is a sanity check, not authentication. The normal application network safety policy still rejects localhost; this standalone lab tool is not an exception to that policy.
 
-See [Stage 3.5](STAGE-3.5.md) for commands and tests. The core UI and backend remain alpha.3; alpha.7 denotes the current standalone development milestone.
+See [Stage 3.5](STAGE-3.5.md) for commands and tests. The core UI and backend remain alpha.3; alpha.8 denotes the current standalone development milestone.
 
 ## Isolated testing environment (Stage 3.4)
 
@@ -268,7 +292,7 @@ flowchart TD
     I --> S
 ```
 
-The DNS modules operate separately from customer lead records. There is no automated HTTP monitoring worker in this milestone. The lab discovery runner is a separate process using direct loopback HTTP only.
+The DNS modules operate separately from customer lead records. There is no external automated HTTP monitoring worker in this milestone. The standalone lab scheduler invokes the local monitoring engine, which runs a separate discovery process using direct loopback HTTP only.
 
 ## Technology stack
 
@@ -372,9 +396,11 @@ ghostlead/
 │   ├── server.py
 │   ├── discovery.py
 │   ├── analysis.py
-│   └── monitoring.py
+│   ├── monitoring.py
+│   └── scheduler.py
 ├── tests/
 │   ├── test_lab.py
+│   ├── test_lab_scheduler.py
 │   ├── test_lab_monitoring.py
 │   ├── test_lab_analysis.py
 │   ├── test_lab_discovery.py
@@ -383,7 +409,7 @@ ghostlead/
 │   ├── test_dns_intelligence.py
 │   └── test_network_safety.py
 ├── templates/
-├── docs/assets/v0.3-alpha.7/
+├── docs/assets/v0.3-alpha.8/
 ├── data/                     # Local runtime data; not committed
 ├── requirements.txt
 ├── requirements-dev.txt
@@ -394,6 +420,7 @@ ghostlead/
 ├── STAGE-3.5.md
 ├── STAGE-3.6.md
 ├── STAGE-3.7.md
+├── STAGE-3.8.md
 └── README.md
 ```
 
@@ -422,13 +449,13 @@ node tests/analytics-model.test.cjs "$env:TEMP/ghostlead-analytics-test/analytic
 
 </details>
 
-Stage 3.7 adds 22 monitoring tests; all 67 lab, discovery, analysis and monitoring cases passed in the Linux development sandbox (20.92s). Stop the lab server before running these tests, because the new integration test binds port 5501. Windows acceptance and full application regression remain pending. Stage 3.6 adds 16 analysis test cases; all 45 lab, discovery and analysis cases passed in the development sandbox. Stage 3.5 adds 13 passing discovery tests in the development sandbox. Stage 3.4 adds 16 passing loopback-only lab integration tests in the development sandbox. These tests never contact external services or write to GhostLead’s database. Stage 3.3 was delivered with 41 passing backend test cases in the development sandbox using mocked DNS and isolated databases. A real public DNS lookup was observed in the Stage 3.2 local UI. Full Next.js build and live authorised preflight still require local verification. This is not a certification of the current repository or production readiness. Live owner-authorised domain verification remains pending.
+Stage 3.8 adds 22 scheduler cases; all 89 lab, discovery, analysis, monitoring and scheduler tests passed in the Linux sandbox (38.24s). Stop the lab and scheduler before running the suite; ports 5501 and 5502 must be free. Windows acceptance and full application regression remain pending. Stage 3.7 adds 22 monitoring tests; all 67 lab, discovery, analysis and monitoring cases passed in the Linux development sandbox (20.92s). Stop the lab server before running these tests, because the new integration test binds port 5501. Windows acceptance and full application regression remain pending. Stage 3.6 adds 16 analysis test cases; all 45 lab, discovery and analysis cases passed in the development sandbox. Stage 3.5 adds 13 passing discovery tests in the development sandbox. Stage 3.4 adds 16 passing loopback-only lab integration tests in the development sandbox. These tests never contact external services or write to GhostLead’s database. Stage 3.3 was delivered with 41 passing backend test cases in the development sandbox using mocked DNS and isolated databases. A real public DNS lookup was observed in the Stage 3.2 local UI. Full Next.js build and live authorised preflight still require local verification. This is not a certification of the current repository or production readiness. Live owner-authorised domain verification remains pending.
 
 Do not expose the development servers publicly. Public deployment requires further network isolation, tenant isolation, HTTPS, access controls, privacy safeguards and deployment testing. Active monitoring of third-party websites is outside the scope of this alpha.
 
 ## Development roadmap
 
-![Animated roadmap through Stage 3.7 with planned later stages.](docs/assets/v0.3-alpha.7/roadmap.gif)
+![Animated roadmap through Stage 3.8 with planned later stages.](docs/assets/v0.3-alpha.8/roadmap.gif)
 
 | Milestone | Status |
 | --- | --- |
@@ -440,9 +467,9 @@ Do not expose the development servers publicly. Public deployment requires furth
 | 3.4 — Isolated testing environment | Delivered; local lab and automated tests confirmed; full acceptance pending |
 | 3.5 — Website and form discovery | Lab-only runner delivered; local acceptance pending |
 | 3.6 — Broken link and performance analysis | Lab-only reporting delivered; local acceptance pending |
-| 3.7 — Automated monitoring engine | Lab-only orchestration delivered; local acceptance pending |
-| 3.8 — Scheduled monitoring | Next |
-| 3.9 — Evidence and incident detection | Planned |
+| 3.7 — Automated monitoring engine | Lab-only orchestration delivered; GitHub files verified |
+| 3.8 — Scheduled monitoring | Foreground lab scheduler delivered; local acceptance pending |
+| 3.9 — Evidence and incident detection | Next |
 | 3.10 — Security and integration testing | Planned |
 | v0.3.0 — Stable automated monitoring release | Target, not released |
 
@@ -452,7 +479,7 @@ Future major milestones: CRM/API integrations, real-time intelligence, productio
 
 ## Project documentation
 
-[Frontend migration](INSTALL.md) · [Journey builder](STAGE-2.3.md) · [Analytics](STAGE-2.4.md) · [Imports](STAGE-2.5.md) · [Domain verification](STAGE-3.1.md) · [Public DNS intelligence](STAGE-3.2.md) · [Network safety](STAGE-3.3.md) · [Isolated lab](STAGE-3.4.md) · [Lab discovery](STAGE-3.5.md) · [Lab analysis](STAGE-3.6.md) · [Monitoring engine](STAGE-3.7.md) · [Original roadmap](ROADMAP.md)
+[Frontend migration](INSTALL.md) · [Journey builder](STAGE-2.3.md) · [Analytics](STAGE-2.4.md) · [Imports](STAGE-2.5.md) · [Domain verification](STAGE-3.1.md) · [Public DNS intelligence](STAGE-3.2.md) · [Network safety](STAGE-3.3.md) · [Isolated lab](STAGE-3.4.md) · [Lab discovery](STAGE-3.5.md) · [Lab analysis](STAGE-3.6.md) · [Monitoring engine](STAGE-3.7.md) · [Scheduled monitoring](STAGE-3.8.md) · [Original roadmap](ROADMAP.md)
 
 `develop` is the active development branch; `main` is the stable release branch. Each development phase updates the README, animation assets, version, roadmap, test evidence and installation notes. Keep existing release tags immutable. No fake metrics or live-status claims in the animations.
 
