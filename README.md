@@ -2,18 +2,18 @@
 
 # GhostLead
 
-![GhostLead — Every lead matters. Stage 3.2 public DNS intelligence.](docs/assets/v0.3-alpha.2/hero.gif)
+![GhostLead — Every lead matters. Stage 3.3 network safety.](docs/assets/v0.3-alpha.3/hero.gif)
 
 **Lead integrity & revenue protection**
 
-![Development version](https://img.shields.io/badge/develop-v0.3.0--alpha.2-2867A7?style=for-the-badge)
+![Development version](https://img.shields.io/badge/develop-v0.3.0--alpha.3-2867A7?style=for-the-badge)
 [![Stable release](https://img.shields.io/badge/stable-v0.2.0-16796E?style=for-the-badge)](https://github.com/milandevs006/ghostlead/tree/v0.2.0)
-![Stage](https://img.shields.io/badge/stage-3.2-597593?style=for-the-badge)
+![Stage](https://img.shields.io/badge/stage-3.3-597593?style=for-the-badge)
 ![Data](https://img.shields.io/badge/data-zero_demo-16796E?style=for-the-badge)
 
-[What is GhostLead?](#what-is-ghostlead) · [What's new](#whats-new-in-stage-32) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Roadmap](#development-roadmap)
+[What is GhostLead?](#what-is-ghostlead) · [What's new](#whats-new-in-stage-33) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Roadmap](#development-roadmap)
 
-[Static, reduced-motion edition](docs/assets/v0.3-alpha.2/STATIC.md)
+[Static, reduced-motion edition](docs/assets/v0.3-alpha.3/STATIC.md)
 
 </div>
 
@@ -30,11 +30,35 @@ GhostLead is an evolving lead integrity platform for businesses and digital agen
 - **Understand** public domain infrastructure with real DNS lookups.
 
 > [!IMPORTANT]
-> This README describes **v0.3.0-alpha.2**, the Stage 3.2 development milestone on `develop`. The latest stable tagged release remains **v0.2.0**. Live website crawling, scheduled checks, automated form submissions and CRM delivery verification are not implemented yet. The application is a single-owner local workspace, not a production-ready SaaS.
+> This README describes **v0.3.0-alpha.3**, the Stage 3.3 development milestone on `develop`. The latest stable tagged release remains **v0.2.0**. Live website crawling, scheduled checks, automated form submissions and CRM delivery verification are not implemented yet. The application is a single-owner local workspace, not a production-ready SaaS.
 
-## What's new in Stage 3.2
+## What's new in Stage 3.3
 
-![Animated five-step DNS workflow: select hostname, query public resolver, classify records, review map, save and export.](docs/assets/v0.3-alpha.2/dns-flow.gif)
+![Animated safety preflight: URL policy, domain proof, public DNS address checks and audit decision.](docs/assets/v0.3-alpha.3/safety-flow.gif)
+
+**Know whether a destination passes our preliminary safety rules before introducing HTTP monitoring.**
+
+| New feature | What it does |
+| --- | --- |
+| Network safety page | Shows URL policy, verification status and HTTP monitoring disabled state. |
+| Destination policy | Only canonical public HTTP(S) hostnames and default ports; rejects credentials, fragments, unsafe characters and IP literals. |
+| Authorisation gate | Requires an active exact-host verification and recorded permission before resolving destination addresses. |
+| Address validation | Checks all A and AAAA results; blocks private, loopback, link-local, multicast, reserved and disallowed transition addresses. Incomplete DNS fails closed. |
+| Proof recheck | Rechecks URL, token and expiry after DNS resolution. |
+| Redirect policy helper | Rejects cross-origin or protocol-changing redirects; three-hop maximum. Not connected to HTTP yet. |
+| Audit history | Records up to 30 preflight decisions per website; no lead or monitor records are created. |
+| Branding | Approved shield logo, favicon and reduced-motion-aware loading animation. |
+
+Open **Network safety**, select a registered website and choose **Run safety preflight**. An unverified website is blocked and no destination lookup occurs. Public DNS intelligence remains available separately. There is a process-local 15-second cooldown for preflights.
+
+> [!IMPORTANT]
+> The preflight is advisory. It does not establish a safe HTTP connection or guarantee future DNS answers. Numeric-address connection pinning, peer validation, TLS and network isolation, redirect integration, total request timeouts and response limits must be implemented and tested before active monitoring. No target HTTP requests are sent in Stage 3.3.
+
+See [Stage 3.3](STAGE-3.3.md).
+
+## Public website intelligence (Stage 3.2)
+
+![Animated five-step DNS workflow: select hostname, query public resolver, classify records, review map, save and export.](docs/assets/v0.3-alpha.3/dns-flow.gif)
 
 *Illustrative workflow; moving signals are animation, not live results.*
 
@@ -50,7 +74,7 @@ GhostLead is an evolving lead integrity platform for businesses and digital agen
 
 ## How it works
 
-![Two paths: public DNS intelligence needs no ownership proof; domain verification requires explicit permission and owner-published TXT token.](docs/assets/v0.3-alpha.2/access-model.gif)
+![Two paths: public DNS intelligence needs no ownership proof; domain verification requires explicit permission and owner-published TXT token.](docs/assets/v0.3-alpha.3/access-model.gif)
 
 ### Path A — Public website intelligence (available now)
 
@@ -68,11 +92,11 @@ No ownership verification is required for this public DNS feature. No lookup is 
 3. The administrator publishes the exact token under `_ghostlead-verification.<hostname>`.
 4. Click **Check DNS record**. GhostLead compares the returned token and records time-limited proof of control.
 
-Challenges expire after 24 hours; successful verification is valid for 7 days and can be revoked. Never request the owner's DNS password. If you cannot obtain permission and cooperation, leave the website unverified. Live verification is still awaiting an authorised domain test. Future active monitoring will also require network safety controls.
+Challenges expire after 24 hours; successful verification is valid for 7 days and can be revoked. Never request the owner's DNS password. If you cannot obtain permission and cooperation, leave the website unverified. Live verification is still awaiting an authorised domain test. Stage 3.3 introduces preliminary safety policy; connection-level enforcement remains required.
 
 ### Read the DNS results
 
-![Animated record explorer explaining A, AAAA, NS, CNAME, MX, TXT, SOA, DS and DMARC.](docs/assets/v0.3-alpha.2/record-explorer.gif)
+![Animated record explorer explaining A, AAAA, NS, CNAME, MX, TXT, SOA, DS and DMARC.](docs/assets/v0.3-alpha.3/record-explorer.gif)
 
 | Result | Interpretation |
 | --- | --- |
@@ -114,6 +138,7 @@ See [Stage 3.2 implementation notes](STAGE-3.2.md) for details.
 | Reports | CSV exports of recorded data and analytical summaries. |
 | Verification | DNS TXT proof of control, explicit permission, expiry and revocation. |
 | Website intelligence | Public DNS lookup, relationship map, historical snapshots and exports. |
+| Network safety | Authorised DNS preflight, URL and address policy, decision history. No HTTP monitoring. |
 
 **Zero demo data.** There are no pre-created accounts, fake businesses, synthetic monitoring results or fabricated revenue figures in the workspace. Unmatched source events are not proof of lost customers. Missing measurements stay empty. Existing lead analytics are calculated from user-supplied records, not live monitoring. See [Stage 2.4](STAGE-2.4.md) for metric definitions, including the different pass-rate denominators used by Overview and Analytics.
 
@@ -128,6 +153,10 @@ flowchart TD
     B --> R[Sessions, records, imports and journeys]
     B --> D[Domain verification]
     B --> I[DNS intelligence]
+    B --> N[Network safety preflight]
+    N --> D
+    N --> Q
+    N --> S
     D --> Q[dnspython / fixed public resolver]
     I --> Q
     Q --> E[Google Public DNS 8.8.8.8]
@@ -222,6 +251,7 @@ ghostlead/
 │   ├── import_formats.py
 │   ├── domain_verification.py
 │   ├── dns_intelligence.py
+│   ├── network_safety.py
 │   └── static/
 ├── frontend/
 │   ├── src/app/
@@ -230,20 +260,24 @@ ghostlead/
 │   │   ├── analytics-centre.tsx
 │   │   ├── import-centre.tsx
 │   │   ├── domain-verification.tsx
-│   │   └── dns-intelligence.tsx
+│   │   ├── dns-intelligence.tsx
+│   │   ├── brand.tsx
+│   │   └── network-safety.tsx
 │   ├── tests/
 │   └── package.json
 ├── tests/
 │   ├── test_app.py
 │   ├── test_domain_verification.py
-│   └── test_dns_intelligence.py
+│   ├── test_dns_intelligence.py
+│   └── test_network_safety.py
 ├── templates/
-├── docs/assets/v0.3-alpha.2/
+├── docs/assets/v0.3-alpha.3/
 ├── data/                     # Local runtime data; not committed
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── STAGE-3.1.md
 ├── STAGE-3.2.md
+├── STAGE-3.3.md
 └── README.md
 ```
 
@@ -272,13 +306,13 @@ node tests/analytics-model.test.cjs "$env:TEMP/ghostlead-analytics-test/analytic
 
 </details>
 
-Stage 3.2 was delivered with eight passing backend tests in the development sandbox using mocked DNS and isolated databases. A real public DNS lookup has subsequently been observed in the local UI. This is not a certification of the current repository or production readiness. Live owner-authorised domain verification remains pending.
+Stage 3.3 was delivered with 41 passing backend test cases in the development sandbox using mocked DNS and isolated databases. A real public DNS lookup was observed in the Stage 3.2 local UI. Full Next.js build and live authorised preflight still require local verification. This is not a certification of the current repository or production readiness. Live owner-authorised domain verification remains pending.
 
 Do not expose the development servers publicly. Public deployment requires further network isolation, tenant isolation, HTTPS, access controls, privacy safeguards and deployment testing. Active monitoring of third-party websites is outside the scope of this alpha.
 
 ## Development roadmap
 
-![Animated roadmap from 3.1 domain proof and 3.2 DNS intelligence to next phase 3.3 network safety and planned later stages.](docs/assets/v0.3-alpha.2/roadmap.gif)
+![Animated roadmap from 3.1 domain proof and 3.2 DNS intelligence to current phase 3.3 safety and planned later stages.](docs/assets/v0.3-alpha.3/roadmap.gif)
 
 | Milestone | Status |
 | --- | --- |
@@ -286,8 +320,8 @@ Do not expose the development servers publicly. Public deployment requires furth
 | v0.2.0 — Advanced foundation | Released / latest stable tag |
 | 3.1 — Domain ownership verification | Implemented; live verification pending |
 | 3.2 — Public website intelligence | Delivered; live public DNS lookup observed |
-| 3.3 — Network safety controls | Next |
-| 3.4 — Isolated testing environment | Planned |
+| 3.3 — Network safety controls | Policy delivered; HTTP connection enforcement remains pending |
+| 3.4 — Isolated testing environment | Next |
 | 3.5 — Website and form discovery | Planned |
 | 3.6 — Broken link and performance analysis | Planned |
 | 3.7 — Automated monitoring engine | Planned |
@@ -300,7 +334,7 @@ Future major milestones: CRM/API integrations, real-time intelligence, productio
 
 ## Project documentation
 
-[Frontend migration](INSTALL.md) · [Journey builder](STAGE-2.3.md) · [Analytics](STAGE-2.4.md) · [Imports](STAGE-2.5.md) · [Domain verification](STAGE-3.1.md) · [Public DNS intelligence](STAGE-3.2.md) · [Original roadmap](ROADMAP.md)
+[Frontend migration](INSTALL.md) · [Journey builder](STAGE-2.3.md) · [Analytics](STAGE-2.4.md) · [Imports](STAGE-2.5.md) · [Domain verification](STAGE-3.1.md) · [Public DNS intelligence](STAGE-3.2.md) · [Network safety](STAGE-3.3.md) · [Original roadmap](ROADMAP.md)
 
 `develop` is the active development branch; `main` is the stable release branch. Each development phase updates the README, animation assets, version, roadmap, test evidence and installation notes. Keep existing release tags immutable. No fake metrics or live-status claims in the animations.
 

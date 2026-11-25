@@ -72,7 +72,7 @@ class ImportLog(Base):
     rows: Mapped[int]=mapped_column(Integer)
     created_at: Mapped[str]=mapped_column(String(32))
 Base.metadata.create_all(engine)
-app=FastAPI(title='GhostLead',version='0.3.0-alpha.2',docs_url=None,redoc_url=None,openapi_url=None)
+app=FastAPI(title='GhostLead',version='0.3.0-alpha.3',docs_url=None,redoc_url=None,openapi_url=None)
 app.mount('/static',StaticFiles(directory=ROOT/'app/static'),name='static')
 ph=PasswordHasher()
 COOKIE='ghostlead_session'
@@ -477,3 +477,77 @@ def dns_lookup(site_id:int, s:Session=Depends(auth)):
         return snapshot_data(row)
     finally:
         _dns_lock.release()
+
+# Stage 3.3 — authenticated safety preflight only. No HTTP worker or crawl route.
+from . import network_safety as ns
+
+class SafetyAudit(Base):
+    __tablename__ = 'safety_audits'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    site_id: Mapped[int] = mapped_column(ForeignKey('sites.id', ondelete='CASCADE'), index=True)
+    observed_at: Mapped[str] = mapped_column(String(32))
+    outcome: Mapped[str] = mapped_column(String(20))
+    reason: Mapped[str] = mapped_column(Text)
+    address_count: Mapped[int] = mapped_column(Integer, default=0)
+
+SafetyAudit.__table__.create(engine, checkfirst=True)
+_safety_lock = Lock()
+_safety_next = 0.0
+
+
+def safety_history(s, site_id):
+    return [serialize(r) for r in s.scalars(select(SafetyAudit).where(SafetyAudit.site_id==site_id).order_by(SafetyAudit.id.desc()).limit(30))]
+
+
+def safety_state(s, site):
+    state = verification_state(site, s.get(DomainProof, site.id))
+    try:
+        target = ns.validate_url(site.url)
+        valid, reason = True, 'URL policy passed.'
+    except ns.SafetyError as exc:
+        valid, reason = False, str(exc)
+    return {'site_id': site.id, 'verification_status': state['status'], 'url_allowed': valid,
+            'url_reason': reason, 'can_preflight': valid and state['status']=='verified',
+            'http_enabled': False, 'history': safety_history(s, site.id)}
+
+@app.get('/api/safety/{site_id}')
+def safety_status(site_id:int, s:Session=Depends(auth)):
+    return safety_state(s, verification_site(s, site_id))
+
+@app.post('/api/safety/{site_id}/preflight')
+def safety_preflight(site_id:int, s:Session=Depends(auth)):
+    global _safety_next
+    site = verification_site(s, site_id)
+    if not _safety_lock.acquire(blocking=False):
+        raise HTTPException(429, 'A safety preflight is already running.')
+    try:
+        if time.monotonic() < _safety_next:
+            raise HTTPException(429, 'Wait 15 seconds between preflights.')
+        _safety_next = time.monotonic() + 15
+        outcome, reason, count = 'blocked', '', 0
+        proof = s.get(DomainProof, site_id)
+        state = verification_state(site, proof)
+        try:
+            target = ns.validate_url(site.url)
+            if state['status'] != 'verified' or not proof or not proof.permission_at:
+                raise ns.SafetyError('Active domain verification and permission are required. No DNS destination lookup made.')
+            original_url, token = site.url, proof.token
+            s.rollback()
+            addresses = ns.resolve_addresses(target)
+            # Fresh database read after DNS: revoked/replaced/expired proof fails closed.
+            site = verification_site(s, site_id)
+            proof = s.get(DomainProof, site_id)
+            if (site.url != original_url or not proof or proof.token != token or not proof.permission_at or
+                    verification_state(site, proof)['status'] != 'verified'):
+                raise ns.SafetyError('Verification changed during preflight. Destination blocked.')
+            outcome, reason, count = 'passed', 'Public-address DNS preflight passed. No HTTP request made; not permission for a future request.', len(addresses)
+        except ns.SafetyError as exc:
+            reason = str(exc)
+        row = SafetyAudit(site_id=site_id, observed_at=now(), outcome=outcome, reason=reason, address_count=count)
+        s.add(row); s.flush()
+        stale = list(s.scalars(select(SafetyAudit.id).where(SafetyAudit.site_id==site_id).order_by(SafetyAudit.id.desc()).offset(30)))
+        if stale: s.execute(delete(SafetyAudit).where(SafetyAudit.id.in_(stale)))
+        s.commit()
+        return safety_state(s, verification_site(s, site_id))
+    finally:
+        _safety_lock.release()
