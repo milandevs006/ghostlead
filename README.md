@@ -2,18 +2,18 @@
 
 # GhostLead
 
-![GhostLead — Every lead matters. Stage 3.3 network safety.](docs/assets/v0.3-alpha.3/hero.gif)
+![GhostLead — Every lead matters. Stage 3.5 automated lab discovery.](docs/assets/v0.3-alpha.5/hero.gif)
 
 **Lead integrity & revenue protection**
 
-![Development version](https://img.shields.io/badge/develop-v0.3.0--alpha.3-2867A7?style=for-the-badge)
+![Development version](https://img.shields.io/badge/develop-v0.3.0--alpha.5-2867A7?style=for-the-badge)
 [![Stable release](https://img.shields.io/badge/stable-v0.2.0-16796E?style=for-the-badge)](https://github.com/milandevs006/ghostlead/tree/v0.2.0)
-![Stage](https://img.shields.io/badge/stage-3.3-597593?style=for-the-badge)
+![Stage](https://img.shields.io/badge/stage-3.5-597593?style=for-the-badge)
 ![Data](https://img.shields.io/badge/data-zero_demo-16796E?style=for-the-badge)
 
-[What is GhostLead?](#what-is-ghostlead) · [What's new](#whats-new-in-stage-33) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Roadmap](#development-roadmap)
+[What is GhostLead?](#what-is-ghostlead) · [What's new](#whats-new-in-stage-35) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Roadmap](#development-roadmap)
 
-[Static, reduced-motion edition](docs/assets/v0.3-alpha.3/STATIC.md)
+[Static, reduced-motion edition](docs/assets/v0.3-alpha.5/STATIC.md)
 
 </div>
 
@@ -30,11 +30,60 @@ GhostLead is an evolving lead integrity platform for businesses and digital agen
 - **Understand** public domain infrastructure with real DNS lookups.
 
 > [!IMPORTANT]
-> This README describes **v0.3.0-alpha.3**, the Stage 3.3 development milestone on `develop`. The latest stable tagged release remains **v0.2.0**. Live website crawling, scheduled checks, automated form submissions and CRM delivery verification are not implemented yet. The application is a single-owner local workspace, not a production-ready SaaS.
+> This README describes **v0.3.0-alpha.5**, the Stage 3.5 development milestone on `develop`. The latest stable tagged release remains **v0.2.0**. External website crawling, scheduled checks, automated form submissions and CRM delivery verification are not implemented yet. The application is a single-owner local workspace, not a production-ready SaaS.
 
-## What's new in Stage 3.3
+## What's new in Stage 3.5
 
-![Animated safety preflight: URL policy, domain proof, public DNS address checks and audit decision.](docs/assets/v0.3-alpha.3/safety-flow.gif)
+![Animated local discovery: verify lab, discover pages, inspect forms, report.](docs/assets/v0.3-alpha.5/discovery-flow.gif)
+
+GhostLead now has a standalone, read-only discovery runner for **GhostLead Lab**. It follows internal HTML links, captures actual HTTP status codes and elapsed request times, and identifies form actions, methods, field names and types. It does not store field values, tokens, page bodies or lead records.
+
+| Step | How it works |
+| --- | --- |
+| Identify lab | Check the fixed local service at `127.0.0.1:5501` using its health marker. |
+| Discover | Visit the root and follow eligible same-origin links, deduplicated. |
+| Inspect | Parse HTML using Python's standard library; no JavaScript execution. |
+| Report | Print actual observations as JSON; no application database writes. |
+
+Start `python -m lab.server` in one terminal. From the repository root in another:
+
+```powershell
+python -m lab.discovery
+```
+
+No custom target argument, external host, query string, redirect following, API crawling or form submission is supported. The runner has a 20-page cap, 256 KiB response cap, four-second socket timeout and a cooperative 25-second discovery budget (not a hard wall-clock deadline). Its health marker is a sanity check, not authentication. The normal application network safety policy still rejects localhost; this standalone lab tool is not an exception to that policy.
+
+See [Stage 3.5](STAGE-3.5.md) for commands and tests. The core UI and backend remain alpha.3; alpha.5 denotes this standalone development milestone.
+
+## Isolated testing environment (Stage 3.4)
+
+![Animated local lab workflow.](docs/assets/v0.3-alpha.5/lab-flow.gif)
+
+**GhostLead Lab** is a separate local development website for controlled tests. It is not connected to the GhostLead workspace or any real website. The core application runtime remains alpha.3; the lab was introduced in alpha.4.
+
+| Fixture | Expected behaviour |
+| --- | --- |
+| Home, pricing, contact | Healthy HTTP 200 pages and internal navigation |
+| Broken link | HTTP 404 |
+| Slow page | Intentional two-second response delay |
+| Unavailable page | HTTP 503 |
+| Contact form | Synthetic ID, selectable delivery outcome |
+| Lab results | At most 100 in-memory rows, cleared on restart |
+
+![Animated delivery scenarios: successful, dropped and rejected.](docs/assets/v0.3-alpha.5/scenarios.gif)
+
+```powershell
+python -m pytest tests/test_lab.py -v
+python -m lab.server
+```
+
+From repository root; open http://127.0.0.1:5501. No GhostLead backend or frontend required. Only synthetic test IDs are accepted. Never add real customer information. The lab does not simulate a real remote CRM; it records controlled source/destination flags for future discovery and reconciliation tests. Public monitoring remains disabled and localhost remains blocked by the normal network safety policy.
+
+See [Stage 3.4](STAGE-3.4.md) for manual acceptance and limits.
+
+## Network safety (Stage 3.3)
+
+![Animated safety preflight: URL policy, domain proof, public DNS address checks and audit decision.](docs/assets/v0.3-alpha.5/safety-flow.gif)
 
 **Know whether a destination passes our preliminary safety rules before introducing HTTP monitoring.**
 
@@ -58,7 +107,7 @@ See [Stage 3.3](STAGE-3.3.md).
 
 ## Public website intelligence (Stage 3.2)
 
-![Animated five-step DNS workflow: select hostname, query public resolver, classify records, review map, save and export.](docs/assets/v0.3-alpha.3/dns-flow.gif)
+![Animated five-step DNS workflow: select hostname, query public resolver, classify records, review map, save and export.](docs/assets/v0.3-alpha.5/dns-flow.gif)
 
 *Illustrative workflow; moving signals are animation, not live results.*
 
@@ -74,7 +123,7 @@ See [Stage 3.3](STAGE-3.3.md).
 
 ## How it works
 
-![Two paths: public DNS intelligence needs no ownership proof; domain verification requires explicit permission and owner-published TXT token.](docs/assets/v0.3-alpha.3/access-model.gif)
+![Two paths: public DNS intelligence needs no ownership proof; domain verification requires explicit permission and owner-published TXT token.](docs/assets/v0.3-alpha.5/access-model.gif)
 
 ### Path A — Public website intelligence (available now)
 
@@ -96,7 +145,7 @@ Challenges expire after 24 hours; successful verification is valid for 7 days an
 
 ### Read the DNS results
 
-![Animated record explorer explaining A, AAAA, NS, CNAME, MX, TXT, SOA, DS and DMARC.](docs/assets/v0.3-alpha.3/record-explorer.gif)
+![Animated record explorer explaining A, AAAA, NS, CNAME, MX, TXT, SOA, DS and DMARC.](docs/assets/v0.3-alpha.5/record-explorer.gif)
 
 | Result | Interpretation |
 | --- | --- |
@@ -140,7 +189,7 @@ See [Stage 3.2 implementation notes](STAGE-3.2.md) for details.
 | Website intelligence | Public DNS lookup, relationship map, historical snapshots and exports. |
 | Network safety | Authorised DNS preflight, URL and address policy, decision history. No HTTP monitoring. |
 
-**Zero demo data.** There are no pre-created accounts, fake businesses, synthetic monitoring results or fabricated revenue figures in the workspace. Unmatched source events are not proof of lost customers. Missing measurements stay empty. Existing lead analytics are calculated from user-supplied records, not live monitoring. See [Stage 2.4](STAGE-2.4.md) for metric definitions, including the different pass-rate denominators used by Overview and Analytics.
+**Zero demo data in the actual workspace.** The standalone lab has explicitly synthetic, temporary test scenarios only.  There are no pre-created accounts, fake businesses, synthetic monitoring results or fabricated revenue figures in the workspace. Unmatched source events are not proof of lost customers. Missing measurements stay empty. Existing lead analytics are calculated from user-supplied records, not live monitoring. See [Stage 2.4](STAGE-2.4.md) for metric definitions, including the different pass-rate denominators used by Overview and Analytics.
 
 ## Architecture
 
@@ -165,7 +214,7 @@ flowchart TD
     I --> S
 ```
 
-The DNS modules operate separately from customer lead records. There is no automated HTTP monitoring worker in this milestone.
+The DNS modules operate separately from customer lead records. There is no automated HTTP monitoring worker in this milestone. The lab discovery runner is a separate process using direct loopback HTTP only.
 
 ## Technology stack
 
@@ -265,19 +314,26 @@ ghostlead/
 │   │   └── network-safety.tsx
 │   ├── tests/
 │   └── package.json
+├── lab/                     # Standalone local development fixtures
+│   ├── server.py
+│   └── discovery.py
 ├── tests/
+│   ├── test_lab.py
+│   ├── test_lab_discovery.py
 │   ├── test_app.py
 │   ├── test_domain_verification.py
 │   ├── test_dns_intelligence.py
 │   └── test_network_safety.py
 ├── templates/
-├── docs/assets/v0.3-alpha.3/
+├── docs/assets/v0.3-alpha.5/
 ├── data/                     # Local runtime data; not committed
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── STAGE-3.1.md
 ├── STAGE-3.2.md
 ├── STAGE-3.3.md
+├── STAGE-3.4.md
+├── STAGE-3.5.md
 └── README.md
 ```
 
@@ -306,13 +362,13 @@ node tests/analytics-model.test.cjs "$env:TEMP/ghostlead-analytics-test/analytic
 
 </details>
 
-Stage 3.3 was delivered with 41 passing backend test cases in the development sandbox using mocked DNS and isolated databases. A real public DNS lookup was observed in the Stage 3.2 local UI. Full Next.js build and live authorised preflight still require local verification. This is not a certification of the current repository or production readiness. Live owner-authorised domain verification remains pending.
+Stage 3.5 adds 13 passing discovery tests in the development sandbox. Stage 3.4 adds 16 passing loopback-only lab integration tests in the development sandbox. These tests never contact external services or write to GhostLead’s database. Stage 3.3 was delivered with 41 passing backend test cases in the development sandbox using mocked DNS and isolated databases. A real public DNS lookup was observed in the Stage 3.2 local UI. Full Next.js build and live authorised preflight still require local verification. This is not a certification of the current repository or production readiness. Live owner-authorised domain verification remains pending.
 
 Do not expose the development servers publicly. Public deployment requires further network isolation, tenant isolation, HTTPS, access controls, privacy safeguards and deployment testing. Active monitoring of third-party websites is outside the scope of this alpha.
 
 ## Development roadmap
 
-![Animated roadmap from 3.1 domain proof and 3.2 DNS intelligence to current phase 3.3 safety and planned later stages.](docs/assets/v0.3-alpha.3/roadmap.gif)
+![Animated roadmap from 3.1 domain proof and 3.2 DNS intelligence to current phase 3.5 lab discovery and planned later stages.](docs/assets/v0.3-alpha.5/roadmap.gif)
 
 | Milestone | Status |
 | --- | --- |
@@ -321,9 +377,9 @@ Do not expose the development servers publicly. Public deployment requires furth
 | 3.1 — Domain ownership verification | Implemented; live verification pending |
 | 3.2 — Public website intelligence | Delivered; live public DNS lookup observed |
 | 3.3 — Network safety controls | Policy delivered; HTTP connection enforcement remains pending |
-| 3.4 — Isolated testing environment | Next |
-| 3.5 — Website and form discovery | Planned |
-| 3.6 — Broken link and performance analysis | Planned |
+| 3.4 — Isolated testing environment | Delivered; local lab and automated tests confirmed; full acceptance pending |
+| 3.5 — Website and form discovery | Lab-only runner delivered; local acceptance pending |
+| 3.6 — Broken link and performance analysis | Next |
 | 3.7 — Automated monitoring engine | Planned |
 | 3.8 — Scheduled monitoring | Planned |
 | 3.9 — Evidence and incident detection | Planned |
@@ -334,7 +390,7 @@ Future major milestones: CRM/API integrations, real-time intelligence, productio
 
 ## Project documentation
 
-[Frontend migration](INSTALL.md) · [Journey builder](STAGE-2.3.md) · [Analytics](STAGE-2.4.md) · [Imports](STAGE-2.5.md) · [Domain verification](STAGE-3.1.md) · [Public DNS intelligence](STAGE-3.2.md) · [Network safety](STAGE-3.3.md) · [Original roadmap](ROADMAP.md)
+[Frontend migration](INSTALL.md) · [Journey builder](STAGE-2.3.md) · [Analytics](STAGE-2.4.md) · [Imports](STAGE-2.5.md) · [Domain verification](STAGE-3.1.md) · [Public DNS intelligence](STAGE-3.2.md) · [Network safety](STAGE-3.3.md) · [Isolated lab](STAGE-3.4.md) · [Lab discovery](STAGE-3.5.md) · [Original roadmap](ROADMAP.md)
 
 `develop` is the active development branch; `main` is the stable release branch. Each development phase updates the README, animation assets, version, roadmap, test evidence and installation notes. Keep existing release tags immutable. No fake metrics or live-status claims in the animations.
 
