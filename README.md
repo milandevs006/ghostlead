@@ -2,18 +2,18 @@
 
 # GhostLead
 
-![GhostLead — Every lead matters. Stage 3.6 lab analysis.](docs/assets/v0.3-alpha.6/hero.gif)
+![GhostLead — Every lead matters. Stage 3.7 automated lab monitoring.](docs/assets/v0.3-alpha.7/hero.gif)
 
 **Lead integrity & revenue protection**
 
-![Development version](https://img.shields.io/badge/develop-v0.3.0--alpha.6-2867A7?style=for-the-badge)
+![Development version](https://img.shields.io/badge/develop-v0.3.0--alpha.7-2867A7?style=for-the-badge)
 [![Stable release](https://img.shields.io/badge/stable-v0.2.0-16796E?style=for-the-badge)](https://github.com/milandevs006/ghostlead/tree/v0.2.0)
-![Stage](https://img.shields.io/badge/stage-3.6-597593?style=for-the-badge)
+![Stage](https://img.shields.io/badge/stage-3.7-597593?style=for-the-badge)
 ![Data](https://img.shields.io/badge/data-zero_demo-16796E?style=for-the-badge)
 
-[What is GhostLead?](#what-is-ghostlead) · [What's new](#whats-new-in-stage-36) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Roadmap](#development-roadmap)
+[What is GhostLead?](#what-is-ghostlead) · [What's new](#whats-new-in-stage-37) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Roadmap](#development-roadmap)
 
-[Static, reduced-motion edition](docs/assets/v0.3-alpha.6/STATIC.md)
+[Static, reduced-motion edition](docs/assets/v0.3-alpha.7/STATIC.md)
 
 </div>
 
@@ -30,9 +30,34 @@ GhostLead is an evolving lead integrity platform for businesses and digital agen
 - **Understand** public domain infrastructure with real DNS lookups.
 
 > [!IMPORTANT]
-> This README describes **v0.3.0-alpha.6**, the Stage 3.6 development milestone on `develop`. The latest stable tagged release remains **v0.2.0**. External website crawling, scheduled checks, automated form submissions and CRM delivery verification are not implemented yet. The application is a single-owner local workspace, not a production-ready SaaS.
+> This README describes **v0.3.0-alpha.7**, the Stage 3.7 development milestone on `develop`. The latest stable tagged release remains **v0.2.0**. External website crawling, scheduled checks, automated form submissions and CRM delivery verification are not implemented yet. The application is a single-owner local workspace, not a production-ready SaaS.
 
-## What's new in Stage 3.6
+## What's new in Stage 3.7
+
+![Automated monitoring run: identify, discover, analyse, evaluate and report.](docs/assets/v0.3-alpha.7/run-flow.gif)
+
+One command now runs discovery and performance analysis end-to-end against GhostLead Lab. Each result has a unique run ID, UTC timestamps, measured elapsed time, execution status, observed health, coverage and structured analysis.
+
+![Execution status is separate from observed health.](docs/assets/v0.3-alpha.7/run-states.gif)
+
+| Execution status | Exit code | Meaning |
+| --- | --- | --- |
+| completed | 0 | Eligible observations completed; issues may still be found. |
+| partial | 2 | Incomplete, unchecked or truncated observations. |
+| failed | 1 | No usable analysis; structured error code. |
+
+Start `python -m lab.server` in one terminal, then run from the repository root in another:
+
+```powershell
+$r = python -m lab.monitoring | ConvertFrom-Json
+$r | Select-Object run_id,execution_status,observed_health,duration_ms,error_code
+$r.analysis.summary
+$r.analysis.findings | Format-Table path,status,elapsed_ms,category,severity
+```
+
+A completed run is not an assertion of good website health. A local integration run observed seven pages and three deliberate fixture problems (404, 503 and a slow response). The worker runs with a 32-second subprocess timeout; startup and cleanup may add time. It is restricted to the fixed loopback origin and inherits the discovery limits. No external HTTP monitoring, automatic scheduling, real form submissions or database writes. Public-address pinning and external connection-level SSRF enforcement remain pending. See [Stage 3.7](STAGE-3.7.md).
+
+## Lab analysis (Stage 3.6)
 
 ![Animated analysis workflow: discover, classify, measure and report.](docs/assets/v0.3-alpha.6/analysis-flow.gif)
 
@@ -82,7 +107,7 @@ python -m lab.discovery
 
 No custom target argument, external host, query string, redirect following, API crawling or form submission is supported. The runner has a 20-page cap, 256 KiB response cap, four-second socket timeout and a cooperative 25-second discovery budget (not a hard wall-clock deadline). Its health marker is a sanity check, not authentication. The normal application network safety policy still rejects localhost; this standalone lab tool is not an exception to that policy.
 
-See [Stage 3.5](STAGE-3.5.md) for commands and tests. The core UI and backend remain alpha.3; alpha.6 denotes the current standalone development milestone.
+See [Stage 3.5](STAGE-3.5.md) for commands and tests. The core UI and backend remain alpha.3; alpha.7 denotes the current standalone development milestone.
 
 ## Isolated testing environment (Stage 3.4)
 
@@ -346,9 +371,11 @@ ghostlead/
 ├── lab/                     # Standalone local development fixtures
 │   ├── server.py
 │   ├── discovery.py
-│   └── analysis.py
+│   ├── analysis.py
+│   └── monitoring.py
 ├── tests/
 │   ├── test_lab.py
+│   ├── test_lab_monitoring.py
 │   ├── test_lab_analysis.py
 │   ├── test_lab_discovery.py
 │   ├── test_app.py
@@ -356,7 +383,7 @@ ghostlead/
 │   ├── test_dns_intelligence.py
 │   └── test_network_safety.py
 ├── templates/
-├── docs/assets/v0.3-alpha.6/
+├── docs/assets/v0.3-alpha.7/
 ├── data/                     # Local runtime data; not committed
 ├── requirements.txt
 ├── requirements-dev.txt
@@ -366,6 +393,7 @@ ghostlead/
 ├── STAGE-3.4.md
 ├── STAGE-3.5.md
 ├── STAGE-3.6.md
+├── STAGE-3.7.md
 └── README.md
 ```
 
@@ -394,13 +422,13 @@ node tests/analytics-model.test.cjs "$env:TEMP/ghostlead-analytics-test/analytic
 
 </details>
 
-Stage 3.6 adds 16 analysis test cases; all 45 lab, discovery and analysis cases passed in the development sandbox. Stage 3.5 adds 13 passing discovery tests in the development sandbox. Stage 3.4 adds 16 passing loopback-only lab integration tests in the development sandbox. These tests never contact external services or write to GhostLead’s database. Stage 3.3 was delivered with 41 passing backend test cases in the development sandbox using mocked DNS and isolated databases. A real public DNS lookup was observed in the Stage 3.2 local UI. Full Next.js build and live authorised preflight still require local verification. This is not a certification of the current repository or production readiness. Live owner-authorised domain verification remains pending.
+Stage 3.7 adds 22 monitoring tests; all 67 lab, discovery, analysis and monitoring cases passed in the Linux development sandbox (20.92s). Stop the lab server before running these tests, because the new integration test binds port 5501. Windows acceptance and full application regression remain pending. Stage 3.6 adds 16 analysis test cases; all 45 lab, discovery and analysis cases passed in the development sandbox. Stage 3.5 adds 13 passing discovery tests in the development sandbox. Stage 3.4 adds 16 passing loopback-only lab integration tests in the development sandbox. These tests never contact external services or write to GhostLead’s database. Stage 3.3 was delivered with 41 passing backend test cases in the development sandbox using mocked DNS and isolated databases. A real public DNS lookup was observed in the Stage 3.2 local UI. Full Next.js build and live authorised preflight still require local verification. This is not a certification of the current repository or production readiness. Live owner-authorised domain verification remains pending.
 
 Do not expose the development servers publicly. Public deployment requires further network isolation, tenant isolation, HTTPS, access controls, privacy safeguards and deployment testing. Active monitoring of third-party websites is outside the scope of this alpha.
 
 ## Development roadmap
 
-![Animated roadmap from 3.1 domain proof and 3.2 DNS intelligence to current phase 3.6 lab analysis and planned later stages.](docs/assets/v0.3-alpha.6/roadmap.gif)
+![Animated roadmap through Stage 3.7 with planned later stages.](docs/assets/v0.3-alpha.7/roadmap.gif)
 
 | Milestone | Status |
 | --- | --- |
@@ -412,17 +440,19 @@ Do not expose the development servers publicly. Public deployment requires furth
 | 3.4 — Isolated testing environment | Delivered; local lab and automated tests confirmed; full acceptance pending |
 | 3.5 — Website and form discovery | Lab-only runner delivered; local acceptance pending |
 | 3.6 — Broken link and performance analysis | Lab-only reporting delivered; local acceptance pending |
-| 3.7 — Automated monitoring engine | Next |
-| 3.8 — Scheduled monitoring | Planned |
+| 3.7 — Automated monitoring engine | Lab-only orchestration delivered; local acceptance pending |
+| 3.8 — Scheduled monitoring | Next |
 | 3.9 — Evidence and incident detection | Planned |
 | 3.10 — Security and integration testing | Planned |
 | v0.3.0 — Stable automated monitoring release | Target, not released |
+
+PROJECT MONOLITH (OpenStatus-inspired UI redesign) remains on hold.
 
 Future major milestones: CRM/API integrations, real-time intelligence, production security and multi-tenancy, billing, and commercial launch.
 
 ## Project documentation
 
-[Frontend migration](INSTALL.md) · [Journey builder](STAGE-2.3.md) · [Analytics](STAGE-2.4.md) · [Imports](STAGE-2.5.md) · [Domain verification](STAGE-3.1.md) · [Public DNS intelligence](STAGE-3.2.md) · [Network safety](STAGE-3.3.md) · [Isolated lab](STAGE-3.4.md) · [Lab discovery](STAGE-3.5.md) · [Lab analysis](STAGE-3.6.md) · [Original roadmap](ROADMAP.md)
+[Frontend migration](INSTALL.md) · [Journey builder](STAGE-2.3.md) · [Analytics](STAGE-2.4.md) · [Imports](STAGE-2.5.md) · [Domain verification](STAGE-3.1.md) · [Public DNS intelligence](STAGE-3.2.md) · [Network safety](STAGE-3.3.md) · [Isolated lab](STAGE-3.4.md) · [Lab discovery](STAGE-3.5.md) · [Lab analysis](STAGE-3.6.md) · [Monitoring engine](STAGE-3.7.md) · [Original roadmap](ROADMAP.md)
 
 `develop` is the active development branch; `main` is the stable release branch. Each development phase updates the README, animation assets, version, roadmap, test evidence and installation notes. Keep existing release tags immutable. No fake metrics or live-status claims in the animations.
 
