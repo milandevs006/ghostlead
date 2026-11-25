@@ -1,35 +1,69 @@
-# GhostLead v0.2 — Phase 1 frontend migration
+# GhostLead v0.3.0 — local installation
 
-This patch replaces only four files in your existing Next.js frontend. It does not contain a database, account, seeded records, backend changes or npm dependencies. Keep the existing `app`, `data`, `frontend/package.json` and `frontend/package-lock.json` files. Back up your database outside the repository before development. Stop the existing Next.js dev server before copying files.
+GhostLead is a local single-owner workspace plus a separate synthetic monitoring lab. It is not a public SaaS deployment. The v0.3.0 release target must pass the gates in [STAGE-3.10.md](STAGE-3.10.md) before publication. Do not expose the backend, frontend or lab to the internet.
 
-## Install on Windows
+## Requirements
 
-1. Extract the ZIP. Copy the contents of its `frontend` folder into your existing `ghostlead/frontend` folder, replacing the four matching files. Do not replace the whole folder. If you changed these files already, save copies first.
-2. In the existing `ghostlead` root, start the backend: `python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload`.
-3. In a separate VS Code terminal, from the root: `cd frontend`; `npm install lucide-react echarts echarts-for-react`; `npm run dev`.
-4. Open http://localhost:3000 and sign into your existing account. If you used 127.0.0.1 for the original frontend, you may need to sign in again. A first-time setup prompt on an already configured database means you should stop and verify the backend/database path instead of creating another account.
-5. The original interface remains accessible at http://127.0.0.1:8000. Both frontends use the same database. Do not expose either server publicly.
-6. Stop the Next.js dev server and run `npx tsc --noEmit` and `npm run build` from `frontend`. If the build passes, restart with `npm run dev`.
+- Python 3.10+ (the verification environment used Python 3.13.5; check the pinned dependencies on your Python version).
+- Node.js compatible with the locked Next.js version (Node 22 LTS recommended; check package engines), npm and Git.
+- Free loopback ports 8000, 3000, 5501, 5502. Internet access for dependency downloads and optional public DNS lookups. No paid API or virtual environment required.
 
-## What is included
+Keep your existing `data/` directory and user account. Before applying any patch, stop the servers and follow the database backup instructions in [STAGE-3.10.md](STAGE-3.10.md). Do not overwrite your local database, or copy a database from another installation. If `GHOSTLEAD_DATABASE_URL` overrides the default, identify and protect that database separately.
 
-- White-theme responsive layout, existing login/setup/logout, nine workspace screens.
-- Real API-backed overview, ECharts daily observations, a read-only customer journey topology, search, record creation/deletion, observation details, CSV imports/exports and reconciliation.
-- No sample records or artificial statistics. Counts and statuses come only from the API. No live tests are executed.
-- Existing FastAPI REST contract, same-origin Next.js API rewrite, no change to SQLite schema.
+## Windows installation
 
-## Not yet included
+From the repository root (adjust the directory for a fresh clone):
 
-Editable React Flow topology, Excel/JSON imports, automated monitoring, production-grade access control, PostgreSQL, full accessibility review and a public deployment. TypeScript transpilation syntax checks passed; dependency-aware type checking, Next.js production build, browser end-to-end testing and proxy authentication have not been run in the authoring environment. Verify on your machine before merging to main.
+```powershell
+cd D:\ghostlead
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+cd frontend
+npm ci
+npx --no-install tsc --noEmit
+npm run lint
+npm run build
+```
 
-## Quick acceptance check
+Stop on any failure. Do not update the lockfile or suppress errors just to finish a release. For local usage only, `requirements.txt` is sufficient; `requirements-dev.txt` includes the test dependencies.
 
-- Sign in with the current owner credentials. Verify the registered website count and the existing website record are unchanged.
-- Check that absent results show a dash or an empty state, not fake metrics.
-- Check the nine screens and compare counts to the original application.
-- If you choose to add real records, confirm that they are visible in both frontends. Do not delete actual records just to test.
-- Confirm CSV exports contain only your own records. Never commit your database, secrets or uploaded private records.
+## Start the application
 
-## Commit after validation
+Terminal 1, from repository root:
 
-From the project root, inspect `git status` and `git diff`. Confirm no database or private customer files are staged. Run `git add frontend` then `git diff --cached --stat` and `git diff --cached --name-only`. Commit and push on `develop` only after the checks pass. Do not merge to `main` yet.
+```powershell
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+`start-windows.bat` is an equivalent backend-only launcher that uses your installed Python and does not create a virtual environment. Terminal 2, from the frontend directory after `npm ci` and a successful build:
+
+```powershell
+cd D:\ghostlead\frontend
+npm run start -- --hostname 127.0.0.1
+```
+
+For local development instead, use `npm run dev -- --hostname 127.0.0.1`. Open http://127.0.0.1:3000. Use the same host consistently, as cookies are host-specific. The backend also serves its legacy local interface at http://127.0.0.1:8000. Use your existing account; if an already configured workspace unexpectedly asks for setup, stop and inspect the database path before creating an account.
+
+## Isolated lab
+
+From the root in a separate terminal:
+
+```powershell
+python -m lab.server
+```
+
+Then from another terminal:
+
+```powershell
+python -m lab.monitoring
+$log = "$env:TEMP\ghostlead-lab-evidence.jsonl"
+python -m lab.scheduler --interval-seconds 5 --runs 2 | Set-Content -Encoding utf8 $log
+python -m lab.evidence import $log
+python -m lab.evidence status
+```
+
+The lab is a deliberately synthetic fixture. It binds only to 127.0.0.1:5501, uses no external HTTP destinations, and writes no workspace records. Evidence is stored separately at `~/.ghostlead-lab/evidence-v1.sqlite3`. Use trusted local logs only. Stop lab and scheduler before running regression tests. No continuous background scheduling, automated production form submissions or CRM delivery verification is implemented.
+
+## Release checks and recovery
+
+See [Stage 3.10](STAGE-3.10.md) for full release gates, backups, source archive, tagging, rollback and known limitations. See [README](README.md) for module documentation, [Release notes](RELEASE-v0.3.0.md) for the release scope, and [Static README](docs/assets/v0.3.0/STATIC.md) for a reduced-motion alternative.

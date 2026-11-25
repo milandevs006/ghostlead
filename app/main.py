@@ -72,7 +72,7 @@ class ImportLog(Base):
     rows: Mapped[int]=mapped_column(Integer)
     created_at: Mapped[str]=mapped_column(String(32))
 Base.metadata.create_all(engine)
-app=FastAPI(title='GhostLead',version='0.3.0-alpha.3',docs_url=None,redoc_url=None,openapi_url=None)
+app=FastAPI(title='GhostLead',version='0.3.0',docs_url=None,redoc_url=None,openapi_url=None)
 app.mount('/static',StaticFiles(directory=ROOT/'app/static'),name='static')
 ph=PasswordHasher()
 COOKIE='ghostlead_session'

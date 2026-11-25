@@ -1,5 +1,5 @@
 'use client';
-import {useMemo,useState,type ReactNode} from 'react';
+import {useEffect,useMemo,useState,type ReactNode} from 'react';
 import dynamic from 'next/dynamic';
 import {Activity,Download,Filter,ChartNoAxesCombined} from 'lucide-react';
 import {analyse,type AnalyticsData} from './analytics-model';
@@ -17,11 +17,13 @@ function Empty({text}:{text:string}){return <div className={styles.empty}><Activ
 function Card({title,sub,children,wide=false}:{title:string;sub:string;children:ReactNode;wide?:boolean}){return <section className={`${styles.card} ${wide?styles.wide:''}`}><header><h2>{title}</h2><p>{sub}</p></header>{children}</section>}
 function exportCsv(rows:unknown[][]){const content=rows.map(row=>row.map(v=>{let s=String(v??'');if(/^[\s]*[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}).join(',')).join('\r\n')+'\r\n';const url=URL.createObjectURL(new Blob([content],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='ghostlead-analytics-website-summary.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 export default function AnalyticsCentre({data}:{data:AnalyticsData}){
- const [site,setSite]=useState('all'),[preset,setPreset]=useState('30'),[start,setStart]=useState(()=>dayString(Date.now()-29*DAY)),[end,setEnd]=useState(()=>dayString(Date.now())),[search,setSearch]=useState(''),[sort,setSort]=useState('name');
- const now=Date.now();const today=Date.parse(dayString(now));
- const range=preset==='all'?{start:-Infinity,end:now+1}:preset==='custom'?{start:Date.parse(start),end:Math.min(Date.parse(end)+DAY,now+1)}:{start:today-(Number(preset)-1)*DAY,end:now+1};
+ const [now,setNow]=useState(()=>Date.now());
+ const [site,setSite]=useState('all'),[preset,setPreset]=useState('30'),[start,setStart]=useState(()=>dayString(now-29*DAY)),[end,setEnd]=useState(()=>dayString(now)),[search,setSearch]=useState(''),[sort,setSort]=useState('name');
+ useEffect(()=>{const timer=window.setInterval(()=>setNow(Date.now()),30000);return()=>window.clearInterval(timer)},[]);
+ const today=Date.parse(dayString(now));
+ const range=useMemo(()=>preset==='all'?{start:-Infinity,end:now+1}:preset==='custom'?{start:Date.parse(start),end:Math.min(Date.parse(end)+DAY,now+1)}:{start:today-(Number(preset)-1)*DAY,end:now+1},[preset,start,end,now,today]);
  const valid=range.start<range.end;
- const a=useMemo(()=>analyse(data,valid?range:{start:0,end:0},site==='all'?null:Number(site)),[data,valid,range.start,range.end,site]);
+ const a=useMemo(()=>analyse(data,valid?range:{start:0,end:0},site==='all'?null:Number(site)),[data,valid,range,site]);
  const rows=a.siteRows.filter(s=>(s.name+' '+s.url).toLowerCase().includes(search.trim().toLowerCase())).sort((x,y)=>sort==='failures'?y.failed-x.failed:sort==='volume'?y.total-x.total:x.name.localeCompare(y.name));
  const dayLabels=a.daily.map(d=>d.date);
  const common={animation:false,textStyle:{fontFamily:'inherit',color:'#334c68'},tooltip:{trigger:'axis',confine:true},grid};
